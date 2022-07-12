@@ -1,0 +1,73 @@
+Package: MRTransmissionModel
+Title: Fit Disease Transmission Models
+Version: 1.0.0
+Authors@R: 
+    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Fits matrix population VSIR models. 
+Imports: methods, countrycode, dplyr, survival, zoo, KernSmooth, pomp, readxl
+Depends: R(>= 3.4)
+License: GPL (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Collate: 
+    'setClasses.R'
+    'EX.Country.part1.R'
+    'EX.Country.part2.R'
+    'ExtractAgeSpecificSurvivalMatrix.R'
+    'Get.CountryX.Starting.Pop.MSIRV.R'
+    'GetNumber.per.AgeGroup.R'
+    'GetNumber.per.AgeYear.R'
+    'GetProp.per.Year.R'
+    'GetRubellaCases.per.Year.R'
+    'GetRubellaSeroprevalence.per.Year.R'
+    'GetSumInYear.R'
+    'SIRIDTran.R'
+    'convertAgeSIA.R'
+    'create.ID.state.matrix.R'
+    'create.ID.transition.MSIRV.R'
+    'create.ID.transition.MSIRV.SIA.R'
+    'create.ID.transition.SIR.R'
+    'create.ID.transition.SIR.vac.R'
+    'create.ID.transition.SIR.vac.SIA.R'
+    'create.country.x.DFE.ID.state.matrix.R'
+    'create.surv.prob.over.age.R'
+    'create.surv.prob.over.age.time.R'
+    'fit.vsucc.Logistic.R'
+    'get.MR1cdf.survival.R'
+    'get.births.fun.R'
+    'get.boulianne.vsucc.R'
+    'get.diagonal.WAIFW.R'
+    'get.flat.WAIFW.R'
+    'get.gans.vsucc.R'
+    'get.polymod.WAIFW.R'
+    'get.prem.WAIFW.R'
+    'get.routine.time.age.specific.R'
+    'get.seasonal.mult.R'
+    'get.sia.time.age.specific.R'
+    'get.smooth.WAIFW.R'
+    'get.vcdf.normal.R'
+    'get.vcdf.uniform.R'
+    'get.vynnycky.WAIFW.R'
+    'getAverageInfectionAge.R'
+    'getCRScases.byage.per.stochastic.rate.R'
+    'getCompartmentTotals.R'
+    'getCumRiskTrimester.R'
+    'getDemography.R'
+    'getDemography.wpp2017.R'
+    'getDemography.wpp2019.R'
+    'getMontaguCoverage_202110gavi_v3.R'
+    'getOutput_201910gavi_v4.R'
+    'getWHO.measles.SIAs.R'
+    'getWHO.rubella.SIAs.R'
+    'next.ID.state.R'
+    'plot.sim.results.MSIRV.R'
+    'plot.sim.results.SIR.R'
+    'pmaternal.R'
+    'pvacsuccess.R'
+    'run.R'
+    'scaleWAIFW.R'
+    'setupCountry.Dec2021.R'
+    'setupCountry_202110gavi_v3.R'
+    'toProportions.R'
