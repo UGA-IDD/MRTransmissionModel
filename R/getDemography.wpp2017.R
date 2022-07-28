@@ -7,19 +7,26 @@
 #'
 #' @importFrom stats smooth.spline predict
 #' @importFrom zoo na.spline
+#' @importFrom utils data
 #' @import countrycode
 #'
 #' @return demography for each country
 #' @export
 #'
 
-getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.use.region=F){
+getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101),
+                                  if.missing.use.region=F){
 
+  # deeply buried in model and won't change
   time.by5 <- seq(1950,2100,5)
   time <- seq(1950,2100,1)
 
   #UNPD data
-  data(pop) # ask Amy
+  # data automatically loaded when install package
+  #data("pop_wpp2017")
+  #pop <- pop_wpp2017
+  data("pop", package = "wpp2017", envir = environment())
+  # wpp2017::pop, data from the wpp2017 R package, user will not change
 
   if (any(pop$country_code==uncode)){
     cc <- uncode
@@ -49,16 +56,28 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   }
 
   #Population total in years 1950 to 2100
-  data(pop)
-  data(popproj)
+  #data(pop) # wpp2017
+  #data("popproj_wpp2017")
+  #popproj <- popproj_wpp2017
+  data("popproj", package = "wpp2017", envir = environment()) # wpp2017
+
   pop.total.1950.2100.by5 <-  as.numeric(cbind(pop[pop$country_code==cc,3:ncol(pop)],
                                                popproj[popproj$country_code==cc,3:ncol(popproj)]))
   f <- smooth.spline(time.by5, pop.total.1950.2100.by5)
   pop.total.1950.2100 <- predict(f,time)$y
 
   #Population Age Structure by Age over time
-  data(popFprojMed)
-  data(popMprojMed)
+  #data("popFprojMed_wpp2017")
+  #popFprojMed <- popFprojMed_wpp2017
+
+  #data("popMprojMed_wpp2017")
+  #popMprojMed <- popMprojMed_wpp2017
+
+  data("popF", package = "wpp2017", envir = environment()) # wpp2017
+  data("popM", package = "wpp2017", envir = environment()) # wpp2017
+  data("popFprojMed", package = "wpp2017", envir = environment()) # wpp2017
+  data("popMprojMed", package = "wpp2017", envir = environment()) # wpp2017
+
   popF.age.1950.2100.by5 <- cbind(popF[popF$country_code==cc,4:ncol(popF)], popFprojMed[popFprojMed$country_code==cc,4:ncol(popFprojMed)])
   popM.age.1950.2100.by5 <- cbind(popM[popM$country_code==cc,4:ncol(popM)], popMprojMed[popMprojMed$country_code==cc,4:ncol(popMprojMed)])
   pop.age.1950.2100.by5 <- popF.age.1950.2100.by5+popM.age.1950.2100.by5
@@ -112,10 +131,17 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   colnames(repro.age.sex.dist.1950.2100) <- time
 
   #TFR over time
-  data(tfr)
-  data(tfrprojMed)
+  #data("tfr_wpp2017")
+  #tfr <- tfr_wpp2017
+
+  #data("tfrprojMed_wpp2017")
+  #tfrprojMed <- tfrprojMed_wpp2017
+
+  data("tfr", package = "wpp2017", envir = environment()) # wpp2017
+  data("tfrprojMed", package = "wpp2017", envir = environment()) # wpp2017
+
   mid.time.by5 <- seq(1952, 2097, 5) #TFR is given over a range, therefore assume it is the mid-period
-  tfr.1950.2100.by5 <-  as.numeric(cbind(tfr[tfr$country_code==cc,3:15],
+  tfr.1950.2100.by5 <- as.numeric(cbind(tfr[tfr$country_code==cc,3:15],
                                          tfrprojMed[tfrprojMed$country_code==cc,3:ncol(tfrprojMed)]))
   f <- smooth.spline(mid.time.by5, tfr.1950.2100.by5)
   tfr.1950.2100 <- predict(f,time)$y
@@ -134,7 +160,11 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   rownames(popF.15to50.1950.2100) <- repro.ages
 
   #ASFR overtime
-  data(percentASFR)
+  #data("percentASFR_wpp2017")
+  #percentASFR <- percentASFR_wpp2017
+
+  data("percentASFR", package = "wpp2017", envir = environment()) # wpp2017
+
   p.asfr <- (percentASFR[percentASFR$country_code==cc,])
   p.asfr.1950.2100 <- matrix(NA, nrow=nrow(p.asfr), ncol=(length(1950:2100)))
   for (t in 1:(ncol(p.asfr)-3)){
@@ -160,7 +190,11 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   names(cbr.1950.2100) <- time
 
   #Age Specific Death Rate over time
-  data(mxF)
+  data("mxF", package = "wpp2017", envir = environment()) # wpp2017
+
+  #data("mxF_wpp2017")
+  #mxF <- mxF_wpp2017
+
   asdr.1950.2100.by5 <- (mxF[mxF$country_code==cc,4:ncol(mxF)])
   asdr.1950.2100.by5 <- cbind(asdr.1950.2100.by5, "2100-2105" = asdr.1950.2100.by5[,ncol(asdr.1950.2100.by5)]) #revised to 2105 xxamy
   asdr.maxage <- 5*(length((mxF[mxF$country_code==cc,3]))-2)
@@ -169,8 +203,16 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
                      mid.age = c(0.5, seq(2.5, (asdr.maxage+2.5), 5)))
 
   #Life Expectancy over time
-  data(e0F)
-  data(e0Fproj)
+  data("e0F", package = "wpp2017", envir = environment()) # wpp2017
+  data("e0Fproj", package = "wpp2017", envir = environment()) # wpp2017
+
+  #data("e0F_wpp2017")
+  #e0F <- e0F_wpp2017
+
+  #data("e0Fproj_wpp2017")
+  #e0Fproj <- e0Fproj_wpp2017
+
+
   mid.time.by5 <- seq(1952, 2097, 5) #e0 is given over a range, therefore assume it is the mid-period
   e0.1950.2100.by5 <-  as.numeric(cbind(e0F[e0F$country_code==cc,3:15],
                                         e0Fproj[e0Fproj$country_code==cc,3:ncol(e0Fproj)]))

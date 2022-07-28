@@ -11,6 +11,8 @@ SIR compartment values at each time step.
 \section{Slots}{
 
 \describe{
+\item{\code{.Data}}{matrix.}
+
 \item{\code{s.inds}}{numeric.}
 
 \item{\code{i.inds}}{numeric.}

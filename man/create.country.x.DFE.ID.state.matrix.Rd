@@ -10,7 +10,8 @@ create.country.x.DFE.ID.state.matrix(
   tran,
   epi.class.label = c("M", "S", "I", "R", "V"),
   year = 1990,
-  use_montagu_demog = T,
+  use_montagu_demog = FALSE,
+  demog_data = NULL,
   ...
 )
 }
@@ -26,6 +27,8 @@ create.country.x.DFE.ID.state.matrix(
 \item{year}{numeric; options are 1950 to 2100}
 
 \item{use_montagu_demog}{xxx}
+
+\item{demog_data}{optional demography data}
 
 \item{...}{other parameters}
 }

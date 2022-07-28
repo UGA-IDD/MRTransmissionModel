@@ -529,6 +529,7 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations",
 #' Class to hold SIR simulation results. Hold the results of the simulation as
 #' SIR compartment values at each time step.
 #'
+#' @slot .Data matrix.
 #' @slot s.inds numeric.
 #' @slot i.inds numeric.
 #' @slot r.inds numeric.
@@ -539,7 +540,8 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations",
 #' @docType class
 #' @rdname sim.results.SIR-class
 setClass("sim.results.SIR",
-         slots = list(s.inds = "numeric", #indexing of susceptibles
+         slots = list(.Data = "matrix",
+                      s.inds = "numeric", #indexing of susceptibles
                       i.inds = "numeric", #infectious indexes
                       r.inds = "numeric", #recovered indexes
                       age.class = "numeric", #upper end of age classes

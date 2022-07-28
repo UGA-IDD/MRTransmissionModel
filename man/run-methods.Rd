@@ -13,11 +13,11 @@
 \usage{
 run(exper, ...)
 
-\S4method{run}{experiment.updatedemog}(exper, rescale.WAIFW = T, ...)
+\S4method{run}{experiment.updatedemog}(exper, rescale.WAIFW = TRUE, ...)
 
-\S4method{run}{experiment.updatedemog.vaccinationchange}(exper, rescale.WAIFW = T, ...)
+\S4method{run}{experiment.updatedemog.vaccinationchange}(exper, rescale.WAIFW = TRUE, ...)
 
-\S4method{run}{experiment.updatedemog.vaccinationchange.vaccinationlimitations}(exper, rescale.WAIFW = T, ...)
+\S4method{run}{experiment.updatedemog.vaccinationchange.vaccinationlimitations}(exper, rescale.WAIFW = TRUE, ...)
 }
 \arguments{
 \item{exper}{the experiment object}

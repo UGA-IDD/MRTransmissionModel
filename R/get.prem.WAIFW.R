@@ -30,9 +30,9 @@ get.prem.WAIFW <- function (age.class.boundries = (1:90),
   }
 
 
-  # save as RDS or something
-  #load("./data/prem_contact_matrices_2021/contact_all.rdata")
-  contact_all <- readRDS("./data/prem_contact_matrices_2021/contact_all.RDS")
+  contact_all <- MRTransmissionModel::contact_all
+  #contact_all <- readRDS("./data/prem_contact_matrices_2021/contact_all.RDS")
+
   index <- which(names(contact_all)==iso3code)
   if (length(index)==0) {
     stop(paste("missing contact matrix for iso3code:", iso3code, "see get.prem.WAIFW()"))

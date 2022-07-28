@@ -13,7 +13,11 @@
 
 getWHO.rubella.SIAs <- function(iso3code, uncode, upper.limit=0.97){
 
-  df <- read_excel("./data/SIAs_WHO_DownloadedDec2021.xls", sheet="SIAs_2000_2022")
+  filep <- system.file("/extdata/SIAs_WHO_DownloadedDec2021.xls",
+                       package = "MRTransmissionModel")
+  df <- read_excel(path = filep, sheet = "SIAs_2000_2022")
+
+  #df <- read_excel("./data/SIAs_WHO_DownloadedDec2021.xls", sheet="SIAs_2000_2022")
   df <- df %>%
     filter(Intervention !="MCV", Intervention !="measles", Intervention !="Measles") %>%
     filter(Activity=="Campaign" | Activity=="CatchUp" | Activity=="FollowUp" | Activity=="SIA") %>%

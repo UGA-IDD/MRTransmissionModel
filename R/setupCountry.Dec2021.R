@@ -5,6 +5,7 @@
 #' @import countrycode
 #' @importFrom dplyr filter select mutate
 #' @importFrom utils read.csv
+#' @importFrom readxl read_xlsx
 #'
 #' @return demography and coverage for each country
 #' @export
@@ -30,7 +31,11 @@ setupCountry.Dec2021 <- function(country){
   repro.age.sex.dist.1950.2100 <- demog$repro.age.sex.dist.1950.2100
 
   # MCV routine coverage
-  df <- read_xlsx("./data/MCV_WUENIC_coverage_estimates_DownloadedDec2021.xlsx", sheet="Sheet1")
+  filep <- system.file("/extdata/MCV_WUENIC_coverage_estimates_DownloadedDec2021.xlsx",
+                       package = "MRTransmissionModel")
+  df <- read_xlsx(path = filep, sheet="Sheet1")
+
+  #df <- read_xlsx("./data/MCV_WUENIC_coverage_estimates_DownloadedDec2021.xlsx", sheet="Sheet1")
   MCV1.coverage <- df %>%
     dplyr::filter(COVERAGE_CATEGORY=="WUENIC",
                   CODE==iso3code,
@@ -51,7 +56,11 @@ setupCountry.Dec2021 <- function(country){
   MCV2.coverage[is.na(MCV2.coverage)] <- 0 #is NA assume 0
 
   # RCV routine Coverage
-  df <- read_xlsx("./data/RCV_WUENIC_coverage_estimates_DownloadedDec2021.xlsx", sheet="Sheet1")
+  filep2 <- system.file("/extdata/RCV_WUENIC_coverage_estimates_DownloadedDec2021.xlsx",
+                       package = "MRTransmissionModel")
+  df <- read_xlsx(path = filep2, sheet="Sheet1")
+
+  #df <- read_xlsx("./data/RCV_WUENIC_coverage_estimates_DownloadedDec2021.xlsx", sheet="Sheet1")
   RCV1.coverage <- df %>%
     dplyr::filter(COVERAGE_CATEGORY=="WUENIC",
                   CODE==iso3code,
@@ -77,19 +86,18 @@ setupCountry.Dec2021 <- function(country){
   age.max.sia.rubella[c(1980:2100) %in% SIA.rubella$year] <- SIA.rubella$age.max
 
   #set up the births function
-  get.births.here <- get.births.fun(state=state,tran=tran,fert.curve=fert,
-                                    lower.age.boundary=c(0,15,20,25,30,35,40,45,50,101))
+  get.births.here <- function(state,tran,
+                              fert.curve=fert,
+                              lower.age.boundary = c(0,15,20,25,30,35,40,45,50,101)) {
+    #xxamy - age.class change from lower.age.boundary = c(0,15,20,25,30,35,40,45,49,100)) {
+    return(get.births.fun(state=state,tran=tran,fert.curve=fert.curve,lower.age.boundary=lower.age.boundary))
 
-  # get.births.here <- function(state,tran,
-  #                             fert.curve=fert,
-  #                             lower.age.boundary = c(0,15,20,25,30,35,40,45,50,101)) {
-  #   #xxamy - age.class change from lower.age.boundary = c(0,15,20,25,30,35,40,45,49,100)) {
-  #   return(get.births.fun(state=state,tran=tran,fert.curve=fert.curve,lower.age.boundary=lower.age.boundary))
-  #
-  # }
+  }
 
   #Inaccessible from DPT1 numbers over time
-  dtp <- read.csv("./data/dtp1_estimates.csv")
+  dtp <- MRTransmissionModel::dtp1_estimates
+
+  #dtp <- read.csv("./data/dtp1_estimates.csv")
   dtp.c <- dtp[dtp$ISO_code==iso3code,]
   dtp.c <- dtp.c[order(dtp.c$Year),]
   dtp.1980.to.2100 <- dtp.c$vacc_coverage[1:length(1980:2017)]

@@ -1,5 +1,0 @@
-vaccine,activity_type,country_code,year,age_first,age_last,coverage
-Rubella,campaign,ZMB,2016,0,14,1
-Rubella,campaign,ZMB,2020,0,5,1
-Rubella,campaign,ZMB,2024,1,5,0.910185994
-Rubella,campaign,ZMB,2028,1,5,0.906319323

@@ -18,7 +18,9 @@ get.polymod.WAIFW <- function (age.class.boundries = (1:90),
   #require(KernSmooth)
 
   #bring in the polymod data on contacts for UK
-  polymod <- read.csv("data/polymodRaw.csv")
+  polymod <- MRTransmissionModel::polymodRaw
+  #polymod <- read.csv("data/polymodRaw.csv")
+
   if (country!="all") polymod <- polymod[polymod$country==country,]
 
   #do touch only

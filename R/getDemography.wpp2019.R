@@ -7,21 +7,24 @@
 #'
 #' @importFrom stats smooth.spline predict
 #' @importFrom zoo na.spline
+#' @importFrom utils data
 #' @import countrycode
+#' @import wpp2019
 #'
 #' @return demography for each country
 #' @export
 #'
 
-getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.use.region=F){
-
+getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101),
+                                  if.missing.use.region=F){
+  # nice to have accessible to user
   cc <- uncode
 
   time.by5 <- seq(1950,2100,5)
   time <- seq(1950,2100,1)
 
   #UNPD data
-  data(pop)
+  data("pop", package = "wpp2019", envir = environment()) # wpp2019
 
   if (any(pop$country_code==uncode)){
     cc <- uncode
@@ -51,8 +54,8 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   }
 
   #Population total in years 1950 to 2100
-  data(pop)
-  data(popproj)
+  #data(pop)
+  data("popproj", package = "wpp2019", envir = environment())
 
   pop.total.1950.2100.by5 <-  as.numeric(cbind(pop[pop$country_code==cc,3:ncol(pop)],
                                                popproj[popproj$country_code==cc,3:ncol(popproj)]))
@@ -60,8 +63,12 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   pop.total.1950.2100 <- predict(f,time)$y
 
   #Population Age Structure by Age over time
-  data(popFprojMed)
-  data(popMprojMed)
+
+  data("popF", package = "wpp2019", envir = environment())
+  data("popM", package = "wpp2019", envir = environment())
+  data("popFprojMed", package = "wpp2019", envir = environment())
+  data("popMprojMed", package = "wpp2019", envir = environment())
+
   popF.age.1950.2100.by5 <- cbind(popF[popF$country_code==cc,4:ncol(popF)], popFprojMed[popFprojMed$country_code==cc,4:ncol(popFprojMed)])
   popM.age.1950.2100.by5 <- cbind(popM[popM$country_code==cc,4:ncol(popM)], popMprojMed[popMprojMed$country_code==cc,4:ncol(popMprojMed)])
   pop.age.1950.2100.by5 <- popF.age.1950.2100.by5+popM.age.1950.2100.by5
@@ -121,8 +128,9 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   colnames(repro.age.sex.dist.1950.2100) <- time
 
   #TFR over time
-  data(tfr)
-  data(tfrprojMed)
+  data("tfr", package = "wpp2019", envir = environment())
+  data("tfrprojMed", package = "wpp2019", envir = environment())
+
   mid.time.by5 <- seq(1952, 2097, 5) #TFR is given over a range, therefore assume it is the mid-period
   tfr.1950.2100.by5 <-  as.numeric(cbind(tfr[tfr$country_code==cc,3:16],
                                          tfrprojMed[tfrprojMed$country_code==cc,3:ncol(tfrprojMed)]))
@@ -143,7 +151,8 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   rownames(popF.15to50.1950.2100) <- repro.ages
 
   #ASFR overtime
-  data(percentASFR)
+  data("percentASFR", package = "wpp2019", envir = environment())
+
   p.asfr <- (percentASFR[percentASFR$country_code==cc,])
   p.asfr.1950.2100 <- matrix(NA, nrow=nrow(p.asfr), ncol=(length(1950:2100)))
   for (t in 1:(ncol(p.asfr)-3)){
@@ -169,7 +178,8 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   names(cbr.1950.2100) <- time
 
   #Age Specific Death Rate over time
-  data(mxF)
+  data("mxF", package = "wpp2019", envir = environment())
+
   asdr.1950.2100.by5 <- (mxF[mxF$country_code==uncode,4:ncol(mxF)])
   asdr.1950.2100.by5 <- cbind(asdr.1950.2100.by5, "2100-2105" = asdr.1950.2100.by5[,ncol(asdr.1950.2100.by5)]) #revised to 2105 xxamy
   asdr.maxage <- 5*(length((mxF[mxF$country_code==uncode,3]))-2)
@@ -178,8 +188,9 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
                      mid.age = c(0.5, seq(2.5, (asdr.maxage+2.5), 5)))
 
   #Life Expectancy over time
-  data(e0F)
-  data(e0Fproj)
+  data("e0F", package = "wpp2019", envir = environment())
+  data("e0Fproj", package = "wpp2019", envir = environment())
+
   mid.time.by5 <- seq(1952, 2097, 5) #e0 is given over a range, therefore assume it is the mid-period
   e0.1950.2100.by5 <-  as.numeric(cbind(e0F[e0F$country_code==cc,3:16],
                                         e0Fproj[e0Fproj$country_code==cc,3:ncol(e0Fproj)]))

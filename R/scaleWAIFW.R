@@ -10,7 +10,7 @@
 #' @export
 #'
 
-scaleWAIFW <- function(R0, state, waifw, frequency.dep=F,suscept.state = 1) {
+scaleWAIFW <- function(R0, state, waifw, frequency.dep=FALSE,suscept.state = 1) {
 
   if (frequency.dep) denom <- sum(state[,1]) else denom <- 1
 

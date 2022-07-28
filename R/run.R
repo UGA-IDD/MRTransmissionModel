@@ -19,7 +19,7 @@ setGeneric("run", function(exper,...) standardGeneric("run"))
 #' @aliases run,experiment.updatedmog,ANY-method
 setMethod("run",
           "experiment.updatedemog",
-          function(exper, rescale.WAIFW=T, ...) {
+          function(exper, rescale.WAIFW=TRUE, ...) {
 
             #print(rescale.WAIFW)
             state <- exper@state.t0
@@ -34,30 +34,30 @@ setMethod("run",
             }
 
             #get the number of time steps in the experiment
-            T <- round((exper@t.max-exper@t.min)/exper@step.size)+1
+            numTimeSteps <- round((exper@t.max-exper@t.min)/exper@step.size)+1
 
             if (!is.null(exper@season.obj)) {
-              mults <- get.seasonal.mult(exper@t0.doy/365+(1:T-1)*exper@step.size,
+              mults <- get.seasonal.mult(exper@t0.doy/365+(1:numTimeSteps-1)*exper@step.size,
                                          exper@season.obj)
             } else {
-              mults <- rep(1,T)
+              mults <- rep(1,numTimeSteps)
             }
 
             #make a temporary transmission object
             tmp.trans <- exper@trans
 
             #hold the states as we walk through
-            rc <- matrix(ncol = T, nrow = nrow(state))
+            rc <- matrix(ncol = numTimeSteps, nrow = nrow(state))
             rc[,1] <- state
 
             #need output vector for births overtime
-            births.each.timestep <- growth.rate.each.timestep <- rep(NA, T)
+            births.each.timestep <- growth.rate.each.timestep <- rep(NA, numTimeSteps)
             births.each.timestep[1] <- tmp.trans@birth.rate
 
             #output vector for when SIAs were administered - default in this experiment is 0
-            sia.times <- routine.intro <- rep(0,T)
+            sia.times <- routine.intro <- rep(0,numTimeSteps)
 
-            for (t in 2:T) {
+            for (t in 2:numTimeSteps) {
 
               #scale the waifw by seasonality
               if (!is.array(mults)){
@@ -109,7 +109,7 @@ setMethod("run",
                       i.inds = exper@trans@i.inds,
                       r.inds = exper@trans@r.inds,
                       v.inds = exper@trans@v.inds,
-                      t = exper@t.min+(1:T-1)*exper@step.size,
+                      t = exper@t.min+(1:numTimeSteps-1)*exper@step.size,
                       age.class = exper@trans@age.class,
                       births.each.timestep = births.each.timestep,
                       growth.rate.each.timestep = growth.rate.each.timestep,
@@ -130,7 +130,7 @@ setMethod("run",
 #' @aliases run,experiment.updatedmog.vaccinationchange,ANY-method
 setMethod("run",
           "experiment.updatedemog.vaccinationchange",
-          function(exper, rescale.WAIFW=T, ...) {
+          function(exper, rescale.WAIFW=TRUE, ...) {
 
             #print(rescale.WAIFW)
             state <- exper@state.t0
@@ -145,24 +145,24 @@ setMethod("run",
             }
 
             #get the number of time steps in the experiment
-            T <- round((exper@t.max-exper@t.min)/exper@step.size)+1
+            numTimeSteps <- round((exper@t.max-exper@t.min)/exper@step.size)+1
 
             if (!is.null(exper@season.obj)) {
-              mults <- get.seasonal.mult(exper@t0.doy/365+(1:T-1)*exper@step.size,
+              mults <- get.seasonal.mult(exper@t0.doy/365+(1:numTimeSteps-1)*exper@step.size,
                                          exper@season.obj)
             } else {
-              mults <- rep(1,T)
+              mults <- rep(1,numTimeSteps)
             }
 
             #make a temporary transmission object
             tmp.trans <- exper@trans
 
             #hold the states as we walk through
-            rc <- matrix(ncol = T, nrow = nrow(state))
+            rc <- matrix(ncol = numTimeSteps, nrow = nrow(state))
             rc[,1] <- state
 
             #need output vector for births over time
-            births.each.timestep <- growth.rate.each.timestep <- rep(NA, T)
+            births.each.timestep <- growth.rate.each.timestep <- rep(NA, numTimeSteps)
             births.each.timestep[1] <- tmp.trans@birth.rate
 
             #generate the age and time specific vaccination matrix
@@ -177,28 +177,28 @@ setMethod("run",
                                                      obj.vcdf.MR1=exper@obj.vcdf.MR1,
                                                      obj.vcdf.MR2=exper@obj.vcdf.MR2,
                                                      obj.prob.vsucc=exper@obj.prob.vsucc,
-                                                     MR1MR2correlation=F)
-            routine.intro <- rep(0, T)
+                                                     MR1MR2correlation=FALSE)
+            routine.intro <- rep(0, numTimeSteps)
             if (any(exper@time.specific.MR1cov!=0)) routine.intro[min(which(exper@time.specific.MR1cov>0))*(1/exper@step.size)+1] <- 1
             if (any(exper@time.specific.MR2cov!=0)) routine.intro[min(which(exper@time.specific.MR2cov>0))*(1/exper@step.size)+1] <- 1
-            index.routine.vacc <- c(1,rep(1:nrow(routine$age.time.specific.routine), each=(T-1)/exper@t.max))
+            index.routine.vacc <- c(1,rep(1:nrow(routine$age.time.specific.routine), each=(numTimeSteps-1)/exper@t.max))
             SIA <- get.sia.time.age.specific(age.classes=exper@trans@age.class,
                                              time.specific.SIAcov=exper@time.specific.SIAcov,
                                              age.min.sia=exper@time.specific.min.age.SIA,
                                              age.max.sia=exper@time.specific.max.age.SIA,
                                              obj.prob.vsucc=exper@obj.prob.vsucc)
-            index.sia.vacc <- rep(NA,T)
+            index.sia.vacc <- rep(NA,numTimeSteps)
             year.sia <- which(exper@time.specific.SIAcov!=0)
-            index.sia.vacc[(year.sia-1)*(T-1)/exper@t.max + round((exper@sia.timing.in.year*(T-1)/exper@t.max))] <-  year.sia #minus 1 because adding the sia.timing
+            index.sia.vacc[(year.sia-1)*(numTimeSteps-1)/exper@t.max + round((exper@sia.timing.in.year*(numTimeSteps-1)/exper@t.max))] <-  year.sia #minus 1 because adding the sia.timing
             sia.times <- ifelse(!is.na(index.sia.vacc), 1, 0)
 
             #need output vectors for primary vaccination failure over time
-            MR1.fail.each.timestep <- MR2.fail.each.timestep <- SIA.fail.each.timestep <- rep(0, T)
+            MR1.fail.each.timestep <- MR2.fail.each.timestep <- SIA.fail.each.timestep <- rep(0, numTimeSteps)
             MR1.fail.each.timestep[1] <- routine$prop.fail.MR1[1]
             MR2.fail.each.timestep[1] <- routine$prop.fail.MR2[1]
             SIA.fail.each.timestep[1] <- 0
 
-            for (t in 2:T) {
+            for (t in 2:numTimeSteps) {
 
               #scale the waifw by seasonality
               if (!is.array(mults)){
@@ -267,7 +267,7 @@ setMethod("run",
                       i.inds = exper@trans@i.inds,
                       r.inds = exper@trans@r.inds,
                       v.inds = exper@trans@v.inds,
-                      t = exper@t.min+(1:T-1)* exper@step.size,
+                      t = exper@t.min+(1:numTimeSteps-1)* exper@step.size,
                       age.class = exper@trans@age.class,
                       births.each.timestep = births.each.timestep,
                       growth.rate.each.timestep = growth.rate.each.timestep,
@@ -290,7 +290,7 @@ setMethod("run",
 #' @aliases run,experiment.updatedemog.vaccinationchange.vaccinationlimitations,ANY-method
 setMethod("run",
           "experiment.updatedemog.vaccinationchange.vaccinationlimitations",
-          function(exper, rescale.WAIFW=T, ...) {
+          function(exper, rescale.WAIFW=TRUE, ...) {
 
             #print(rescale.WAIFW)
             state <- exper@state.t0
@@ -305,24 +305,24 @@ setMethod("run",
             }
 
             #get the number of time steps in the experiment
-            T <- round((exper@t.max-exper@t.min)/exper@step.size)+1
+            numTimeSteps <- round((exper@t.max-exper@t.min)/exper@step.size)+1
 
             if (!is.null(exper@season.obj)) {
-              mults <- get.seasonal.mult(exper@t0.doy/365+(1:T-1)*exper@step.size,
+              mults <- get.seasonal.mult(exper@t0.doy/365+(1:numTimeSteps-1)*exper@step.size,
                                          exper@season.obj)
             } else {
-              mults <- rep(1,T)
+              mults <- rep(1,numTimeSteps)
             }
 
             #make a temporary transmission object
             tmp.trans <- exper@trans
 
             #hold the states as we walk through
-            rc <- matrix(ncol = T, nrow = nrow(state))
+            rc <- matrix(ncol = numTimeSteps, nrow = nrow(state))
             rc[,1] <- state
 
             #need output vector for births over time
-            births.each.timestep <- growth.rate.each.timestep <- rep(NA, T)
+            births.each.timestep <- growth.rate.each.timestep <- rep(NA, numTimeSteps)
             births.each.timestep[1] <- tmp.trans@birth.rate
 
             #there are a couple options that are not yet coded - stop experiment if these are selected
@@ -349,27 +349,27 @@ setMethod("run",
                                                      obj.vcdf.MR2=exper@obj.vcdf.MR2,
                                                      obj.prob.vsucc=exper@obj.prob.vsucc,
                                                      MR1MR2correlation=exper@MR1MR2correlation)
-            routine.intro <- rep(0, T)
+            routine.intro <- rep(0, numTimeSteps)
             if (any(exper@time.specific.MR1cov!=0)) routine.intro[min(which(exper@time.specific.MR1cov>0))*(1/exper@step.size)+1] <- 1
             if (any(exper@time.specific.MR2cov!=0)) routine.intro[min(which(exper@time.specific.MR2cov>0))*(1/exper@step.size)+1] <- 1
-            index.routine.vacc <- c(1,rep(1:nrow(routine$age.time.specific.routine), each=(T-1)/exper@t.max))
+            index.routine.vacc <- c(1,rep(1:nrow(routine$age.time.specific.routine), each=(numTimeSteps-1)/exper@t.max))
             SIA <- get.sia.time.age.specific(age.classes=exper@trans@age.class,
                                              time.specific.SIAcov=exper@time.specific.SIAcov,
                                              age.min.sia=exper@time.specific.min.age.SIA,
                                              age.max.sia=exper@time.specific.max.age.SIA,
                                              obj.prob.vsucc=exper@obj.prob.vsucc)
-            index.sia.vacc <- rep(NA,T)
+            index.sia.vacc <- rep(NA,numTimeSteps)
             year.sia <- which(exper@time.specific.SIAcov!=0)
-            index.sia.vacc[(year.sia-1)*(T-1)/exper@t.max + round((exper@sia.timing.in.year*(T-1)/exper@t.max))] <-  year.sia #minus 1 because adding the sia.timing
+            index.sia.vacc[(year.sia-1)*(numTimeSteps-1)/exper@t.max + round((exper@sia.timing.in.year*(numTimeSteps-1)/exper@t.max))] <-  year.sia #minus 1 because adding the sia.timing
             sia.times <- ifelse(!is.na(index.sia.vacc), 1, 0)
 
             #need output vectors for primary vaccination failure over time
-            MR1.fail.each.timestep <- MR2.fail.each.timestep <- SIA.fail.each.timestep <- rep(0, T)
+            MR1.fail.each.timestep <- MR2.fail.each.timestep <- SIA.fail.each.timestep <- rep(0, numTimeSteps)
             MR1.fail.each.timestep[1] <- routine$prop.fail.MR1[1]
             MR2.fail.each.timestep[1] <- routine$prop.fail.MR2[1]
             SIA.fail.each.timestep[1] <- 0
 
-            for (t in 2:T) {
+            for (t in 2:numTimeSteps) {
 
               #scale the waifw by seasonality
               if (!is.array(mults)){
@@ -526,7 +526,7 @@ setMethod("run",
                       i.inds = exper@trans@i.inds,
                       r.inds = exper@trans@r.inds,
                       v.inds = exper@trans@v.inds,
-                      t = exper@t.min+(1:T-1)* exper@step.size,
+                      t = exper@t.min+(1:numTimeSteps-1)* exper@step.size,
                       age.class = exper@trans@age.class,
                       births.each.timestep = births.each.timestep,
                       growth.rate.each.timestep = growth.rate.each.timestep,

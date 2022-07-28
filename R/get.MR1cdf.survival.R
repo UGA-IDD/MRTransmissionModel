@@ -14,7 +14,9 @@
 
 get.MR1cdf.survival <- function(uncode, min.age=1, max.age=24){
 
-  data <- read.csv("./data/DHS_ageMCV1_Data.csv")
+  data <- MRTransmissionModel::DHS_ageMCV1_Data
+  #data <- read.csv("./data/DHS_ageMCV1_Data.csv")
+
   dat <- data[which(data$uncode==uncode),]
   ages <- min.age:max.age
   if (nrow(dat)>0){ #if DHS data for specific country - use country data
@@ -23,14 +25,26 @@ get.MR1cdf.survival <- function(uncode, min.age=1, max.age=24){
     sm <- smooth.spline(c(0,out$time), c(0,(1-out$surv)))
     cdf <- predict(sm, ages)$y
   } else { #otherwise use region data
-    cc <- read.csv("./data/country_codes.csv")
+
+    cc <- MRTransmissionModel::country_codes
+    #cc <- read.csv("./data/country_codes.csv")
+
     reg <- cc$Region_Code[which(cc$uncode==uncode)]
     if (reg=="AFRO"){
-      dat <- read.csv("./data/DHS_ageMCV1_Data_AFRO.csv")
+
+      dat <- MRTransmissionModel::DHS_ageMCV1_Data_AFRO
+      #dat <- read.csv("./data/DHS_ageMCV1_Data_AFRO.csv")
+
     } else if (reg=="EMRO"){
-      dat <- read.csv("./data/DHS_ageMCV1_Data_EMRO.csv")
+
+      dat <- MRTransmissionModel::DHS_ageMCV1_Data_EMRO
+      #dat <- read.csv("./data/DHS_ageMCV1_Data_EMRO.csv")
+
     } else if (reg=="SEARO"){
-      dat <- read.csv("./data/DHS_ageMCV1_Data_SEARO.csv")
+
+      dat <- MRTransmissionModel::DHS_ageMCV1_Data_SEARO
+      #dat <- read.csv("./data/DHS_ageMCV1_Data_SEARO.csv")
+
     } else{
       dat <- data[data$region==reg,]
     }

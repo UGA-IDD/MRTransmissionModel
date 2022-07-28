@@ -76,12 +76,12 @@ EX.Country.part1 <- function(uncode,
 
   EX <- new("experiment.updatedemog")
   EX@name <- paste(uncode, "Frequency Dependent", sep=" ")
-  EX@state.t0 = tmp$state
-  EX@trans = tmp$tran
-  EX@t.min = 0
-  EX@t0.doy = 0
-  EX@step.size = 1/(12*1/generation.time) #1/no.gens.per.year
-  EX@season.obj = new("seasonal.cosine", amplitude = seasonal.amp)
+  EX@state.t0 <- tmp$state
+  EX@trans <- tmp$tran
+  EX@t.min <- 0
+  EX@t0.doy <- 0
+  EX@step.size <- 1/(12*1/generation.time) #1/no.gens.per.year
+  EX@season.obj <- new("seasonal.cosine", amplitude = seasonal.amp)
   EX@R0 <- R0
   EX@t.max <-t.max
   EX@maternal.obj <- new("maternal.exp.decay", decay.rt=maternal.decay.rt)

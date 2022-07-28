@@ -39,6 +39,7 @@ SIRIDTran <- function (state, tran) {
   ## #no one stays infecrted...might get more sophisticated later
   ## tran.matrix[tran@i.inds, tran@i.inds] <- 0
 
+
   tran.matrix <- .Call("calc_phi_and_update_tran",
                        tran@waifw,
                        state[,1],
@@ -73,32 +74,43 @@ SIRIDTran <- function (state, tran) {
     #mortality probablity in each category of the n.age.class * no classes
     mort <- 1-rep(tran@survival.rate, each=state@n.epi.class)
 
-    if (is.loaded("do_ID_transition_SIR_stochastic_moves")) {
-      #C implementation of this.
-      #state[,1] <- .C("do_ID_transition_SIR_stochastic_moves",
-      #                as.integer(state[,1]),
-      #                as.integer(length(state[,1])),
-      #                as.double(tran.matrix),
-      #                newstate=as.integer(state[,1]))$newstate
+    state[,1] <- .Call("do_ID_transition_SIR_stochastic_moves_cl",
+                       as.integer(state[,1]),
+                       tran.matrix)
 
-      state[,1] <- .Call("do_ID_transition_SIR_stochastic_moves_cl",
-                         as.integer(state[,1]),
-                         tran.matrix)
-    } else {
-      #loop over and distribute via a multinomial
-      newstate <- rep(0,1+length(tran.matrix[,1]))
-      for (k in 1:length(tran.matrix[1,])) {
-        newstate <- newstate+
-          rmultinom(1,state[k,1],c(tran.matrix[,k],mort[k]))
-      }
+    # # do you always want to use this function?
+    # # remove the if statement
+    # if (is.loaded("do_ID_transition_SIR_stochastic_moves")) {
+    #   #C implementation of this.
+    #   #state[,1] <- .C("do_ID_transition_SIR_stochastic_moves",
+    #   #                as.integer(state[,1]),
+    #   #                as.integer(length(state[,1])),
+    #   #                as.double(tran.matrix),
+    #   #                newstate=as.integer(state[,1]))$newstate
+    #
+    #
+    #   state[,1] <- .Call("do_ID_transition_SIR_stochastic_moves_cl",
+    #                    as.integer(state[,1]),
+    #                    tran.matrix)
+    #
+    #   # ALWAYS use the C code
+    #
+    # } else {
+    #   #loop over and distribute via a multinomial
+    #   newstate <- rep(0,1+length(tran.matrix[,1]))
+    #   for (k in 1:length(tran.matrix[1,])) {
+    #     newstate <- newstate+
+    #       rmultinom(1,state[k,1],c(tran.matrix[,k],mort[k]))
+    #   }
+    #
+    #   state[,1] <- newstate[1:length(tran.matrix[,1])]
+    #
+    # }
 
-      state[,1] <- newstate[1:length(tran.matrix[,1])]
-
-    }
     #add in the births to 1,1 for now, assuming that is correct.
     #might go back on this later.
     #state[1,1] <-  state[1,1] + rpois(1,tran@birth.rate) #A BIT OF A HACK
-    state[,1] <-  state[,1] +rpois(length(birthst),birthst)#xxj - current births based on function
+    state[,1] <- state[,1] +rpois(length(birthst),birthst)#xxj - current births based on function
     #crude way of handling introductions
     state[tran@i.inds,1] <- state[tran@i.inds,1] +
       rpois(length(tran@i.inds),tran@introduction.rate)

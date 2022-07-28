@@ -1,6 +1,8 @@
 ^MRTransmissionModel\.Rproj$
 ^\.Rproj\.user$
 
-^source
+^originalFiles
 ^testCode
-^data
+^testScripts
+^vimc_private
+^more_data

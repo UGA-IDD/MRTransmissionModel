@@ -4,7 +4,7 @@
 \alias{scaleWAIFW}
 \title{Function to scale the WAIFW matrix to a particular R0 given a particular population}
 \usage{
-scaleWAIFW(R0, state, waifw, frequency.dep = F, suscept.state = 1)
+scaleWAIFW(R0, state, waifw, frequency.dep = FALSE, suscept.state = 1)
 }
 \arguments{
 \item{R0}{the reproductive rate to scale to}

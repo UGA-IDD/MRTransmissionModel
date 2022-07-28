@@ -6,6 +6,7 @@
 #' @param epi.class.label xxx
 #' @param year numeric; options are 1950 to 2100
 #' @param use_montagu_demog xxx
+#' @param demog_data optional demography data
 #' @param ... other parameters
 #'
 #' @importFrom stats smooth.spline predict
@@ -16,14 +17,21 @@
 
 create.country.x.DFE.ID.state.matrix <- function(uncode, tot.pop=NULL, tran,
                                                  epi.class.label = c("M","S","I","R","V"),
-                                                 year=1990, use_montagu_demog=T, ...){
+                                                 year=1990, use_montagu_demog=FALSE,
+                                                 demog_data = NULL, ...){
 
   #make template
   rc <- create.ID.state.matrix(tran@n.age.class,
                                tran@n.epi.class,  epi.class.label = epi.class.label)
 
-  if (use_montagu_demog) demog <- getDemography(uncode=uncode)
-  if (!use_montagu_demog) demog <- getDemography.wpp2019(uncode=uncode)
+  if (use_montagu_demog){
+    #demog <- getDemography(uncode=uncode)
+    stop("if use_montagu_demog == TRUE, you must include your own
+         demography data as a parameter because montagu data is classified")
+    # e.e demog <- demog_data
+  }else{
+    demog <- getDemography.wpp2019(uncode=uncode)
+  }
   pop.struct <- demog$pop.age.byageclasses.1950.2100[,(year-1950+1)]*1000
   age <- as.numeric(rownames(demog$pop.age.byageclasses.1950.2100))
 
