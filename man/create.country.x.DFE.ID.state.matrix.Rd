@@ -11,8 +11,7 @@ create.country.x.DFE.ID.state.matrix(
   epi.class.label = c("M", "S", "I", "R", "V"),
   year = 1990,
   use_montagu_demog = FALSE,
-  demog_data = NULL,
-  ...
+  demog_data = NULL
 )
 }
 \arguments{
@@ -22,15 +21,13 @@ create.country.x.DFE.ID.state.matrix(
 
 \item{tran}{the transition object}
 
-\item{epi.class.label}{xxx}
+\item{epi.class.label}{xxx ask Amy}
 
 \item{year}{numeric; options are 1950 to 2100}
 
-\item{use_montagu_demog}{xxx}
+\item{use_montagu_demog}{logical; if TRUE use montagu demography data}
 
 \item{demog_data}{optional demography data}
-
-\item{...}{other parameters}
 }
 \value{
 a starting DFE vector of S and R individuals

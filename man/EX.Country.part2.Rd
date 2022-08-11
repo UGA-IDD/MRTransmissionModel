@@ -47,13 +47,13 @@ EX.Country.part2(
 
 \item{pop.time}{numeric; time in YEARS that you want to rescale the population by}
 
-\item{is.stochastic}{logical}
+\item{is.stochastic}{xxx}
 
 \item{get.births}{vector of births with length of 5*n.age.classes}
 
 \item{t.max}{numeric; time in year that plan to run the experiment}
 
-\item{rescale.WAIFW}{logical}
+\item{rescale.WAIFW}{xxx}
 
 \item{yr.births.per.1000.acrossyears}{vector of length t.max; crude birth rate per 1000 per year}
 

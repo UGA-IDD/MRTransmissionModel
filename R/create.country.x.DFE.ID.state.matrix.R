@@ -3,11 +3,10 @@
 #' @param uncode UN country code
 #' @param tot.pop population by which you can rescale if you want
 #' @param tran the transition object
-#' @param epi.class.label xxx
+#' @param epi.class.label xxx ask Amy
 #' @param year numeric; options are 1950 to 2100
-#' @param use_montagu_demog xxx
+#' @param use_montagu_demog logical; if TRUE use montagu demography data
 #' @param demog_data optional demography data
-#' @param ... other parameters
 #'
 #' @importFrom stats smooth.spline predict
 #'
@@ -18,17 +17,14 @@
 create.country.x.DFE.ID.state.matrix <- function(uncode, tot.pop=NULL, tran,
                                                  epi.class.label = c("M","S","I","R","V"),
                                                  year=1990, use_montagu_demog=FALSE,
-                                                 demog_data = NULL, ...){
+                                                 demog_data = NULL){
 
-  #make template
+  # make template
   rc <- create.ID.state.matrix(tran@n.age.class,
                                tran@n.epi.class,  epi.class.label = epi.class.label)
 
   if (use_montagu_demog){
-    #demog <- getDemography(uncode=uncode)
-    stop("if use_montagu_demog == TRUE, you must include your own
-         demography data as a parameter because montagu data is classified")
-    # e.e demog <- demog_data
+    demog <- demog_data
   }else{
     demog <- getDemography.wpp2019(uncode=uncode)
   }

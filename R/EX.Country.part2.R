@@ -4,10 +4,10 @@
 #' @param generation.time generation time in months
 #' @param pop.rescale numeric; population by which you want to rescale at pop.time
 #' @param pop.time numeric; time in YEARS that you want to rescale the population by
-#' @param is.stochastic logical
+#' @param is.stochastic xxx
 #' @param get.births vector of births with length of 5*n.age.classes
 #' @param t.max numeric; time in year that plan to run the experiment
-#' @param rescale.WAIFW logical
+#' @param rescale.WAIFW xxx
 #' @param yr.births.per.1000.acrossyears vector of length t.max; crude birth rate per 1000 per year
 #' @param asdr.object nMx object; with rate and mid-age (age specific death rates)
 #' @param year numeric; year that pulled DFE demography (population and age structure) from part1

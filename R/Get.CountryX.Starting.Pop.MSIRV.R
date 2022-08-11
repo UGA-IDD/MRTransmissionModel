@@ -15,15 +15,16 @@
 #' @param targeted.intro logical; FALSE means space introduction out over all age classes, TRUE means to concentrate introductions
 #' @param year numeric; year to pull country DFE demography (age structure and population size)
 #' @param get.births xxx
-#' @param use_montagu_demog xxx
+#' @param use_montagu_demog logical; if TRUE use montagu demography data
 #' @param routine.vac xxx
 #' @param routine.vac.age.index xxx
+#' @param demog_data optional demography data for use if use_montagu_demog = TRUE
 #'
 #' @return starting state and transition object
 #' @export
 #'
 
-Get.CountryX.Starting.Pop.MSIRV <- function(uncode ,
+Get.CountryX.Starting.Pop.MSIRV <- function(uncode,
                                             generation.time = 0.5,  #generation time in months
                                             age.classes = c(1:240, seq(241,720,12)),
                                             maternal.decay.rt=0.95, #based on Metcalf, 2012 paper
@@ -33,14 +34,15 @@ Get.CountryX.Starting.Pop.MSIRV <- function(uncode ,
                                             tot.pop=NULL,
                                             yr.births.per.1000,
                                             intro.rate=intro.rate,
-                                            flat.WAIFW=F,
+                                            flat.WAIFW=FALSE,
                                             asdr.object=NULL,
                                             targeted.intro=FALSE,
                                             year=1990,
                                             get.births,
-                                            use_montagu_demog=T,
+                                            use_montagu_demog=TRUE,
                                             routine.vac=0,
-                                            routine.vac.age.index=12){
+                                            routine.vac.age.index=12,
+                                            demog_data = NULL){
 
   ## Calculate the aging rate using the age classes and the generation time
   age.lows <- c(0,age.classes[2:length(age.classes)-1]) # makes it 0 to 697 rather than 1 to 709, so lowest age in wach age range
@@ -49,7 +51,9 @@ Get.CountryX.Starting.Pop.MSIRV <- function(uncode ,
   aging.rate[length(aging.rate)] <- 0 # forcing the last aging range to 0
 
   ## Returns the age profile of survivorship in units of the generation time
-  survs <- create.surv.prob.over.age(age.classes=age.classes, generation.time=generation.time, nMx=asdr.object, year=year)
+  survs <- create.surv.prob.over.age(age.classes=age.classes,
+                                     generation.time=generation.time,
+                                     nMx=asdr.object, year=year)
 
   ## Create WAIFW matrix age.classes X age.classes dimensions, default is polymod basedo on great britain
   if (flat.WAIFW) {
@@ -57,7 +61,6 @@ Get.CountryX.Starting.Pop.MSIRV <- function(uncode ,
   }else{
     waifw <- get.polymod.WAIFW(age.classes/12)
   }
-
 
   ## Set up maternal immunity
   maternal.obj = new("maternal.exp.decay", decay.rt=maternal.decay.rt)
@@ -84,7 +87,7 @@ Get.CountryX.Starting.Pop.MSIRV <- function(uncode ,
   ## Putting in starting state where everyone susceptible
   state <- create.country.x.DFE.ID.state.matrix(uncode=uncode, tot.pop=tot.pop, tran=tran,
                                                 epi.class.label = c("M","S","I","R","V"), year=year,
-                                                use_montagu_demog=use_montagu_demog)
+                                                use_montagu_demog=use_montagu_demog, demog_data = demog_data)
 
   ## Update births now because need sum(state) = pop
   ## the expected number of total births for each time step

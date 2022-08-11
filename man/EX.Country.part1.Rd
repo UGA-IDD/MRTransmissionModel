@@ -10,24 +10,25 @@ EX.Country.part1(
   age.classes = c(1:240, seq(241, 720, 12)),
   maternal.decay.rt = 0.95,
   exponent = 0.97,
-  frequency.dep = T,
+  frequency.dep = TRUE,
   tot.pop = NULL,
   yr.births.per.1000.acrossyears,
   intro.rate = 1e-10,
-  targeted.intro = F,
+  targeted.intro = FALSE,
   R0 = 5,
   t.max = 20,
   get.births = NULL,
   seasonal.amp = 0.35,
-  flat.WAIFW = F,
-  country.specific.WAIFW = F,
-  vynnycky.waifw = F,
+  flat.WAIFW = FALSE,
+  country.specific.WAIFW = FALSE,
+  vynnycky.waifw = FALSE,
   vynnycky.waifw.betas = c(2, 1),
   asdr.object,
   year = 1990,
-  use_montagu_demog = F,
+  use_montagu_demog = FALSE,
   routine.vac = 0,
-  routine.vac.age.index = 12
+  routine.vac.age.index = 12,
+  demog_data = NULL
 )
 }
 \arguments{
@@ -41,7 +42,7 @@ EX.Country.part1(
 
 \item{exponent}{numeric; exponent for the infected}
 
-\item{frequency.dep}{logical;}
+\item{frequency.dep}{xxx}
 
 \item{tot.pop}{numeric; population you want to scale you whole experiment by at the beginning, NULL or numeric}
 
@@ -76,6 +77,8 @@ EX.Country.part1(
 \item{routine.vac}{xxx}
 
 \item{routine.vac.age.index}{xxx}
+
+\item{demog_data}{optional demography data for use if demog_data = NULL}
 }
 \value{
 experiment result

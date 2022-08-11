@@ -18,7 +18,7 @@ create.ID.state.matrix(
 
 \item{epi.class.label}{the names of the states}
 
-\item{value}{starting values, defauls to all 0}
+\item{value}{starting values, defaults to all 0}
 }
 \value{
 an ID.state.matrix object

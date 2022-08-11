@@ -1,24 +1,45 @@
-
 rm(list = ls())
 gc()
 
-devtools::document()
-devtools::build()
-devtools::install()
-
-
 library(MRTransmissionModel)
 
-# source("vimc_private/Rfunctions/getDemography.R")
-# source("vimc_private/Rfunctions/getMontaguCoverage_202110gavi_v3.R")
-# source("vimc_private/Rfunctions/setupCountry_202110gavi_v3.R")
+source("vimc_private/getDemography.R")
+source("vimc_private/getMontaguCoverage_202110gavi_v3.R")
+source("vimc_private/setupCountry_202110gavi_v3.R")
 
-setup <- setupCountry.Dec2021(country="Albania")
 setup <- setupCountry_202110gavi_v3(country="ZMB")
 year <- 1980
 t.max <- length(year:2100)
 
+demog_data <- getDemography(uncode = setup$uncode)
+
+
 #Function to set up experiment and run the transients out
+uncode=setup$uncode
+generation.time = 0.5
+age.classes = c(1:240, seq(252,1212,12))
+maternal.decay.rt = 0.45#based on Leuridan + others wanes b/w 3-9 months
+exponent = 0.97
+frequency.dep=TRUE
+yr.births.per.1000.acrossyears=rep(setup$cbr.1950.2100[year-1950+1],20)
+targeted.intro=FALSE
+intro.rate=1/24/320
+tot.pop=NULL #it will pull a pop automatically from pop distribution if NULL
+R0 = 5
+t.max = 20
+get.births=setup$get.births.here
+seasonal.amp = 0.15 #metcalf et al 2012 used 0.35, age-structured metcalf paper used 0.2, ferrari 2007 nature 0.2 to 0.6 for measles
+flat.WAIFW=FALSE
+country.specific.WAIFW=TRUE
+vynnycky.waifw=FALSE
+vynnycky.waifw.betas = c(2,1)
+asdr.object=setup$asdr.object
+year=year
+use_montagu_demog=TRUE # question about this parameter
+routine.vac=0
+routine.vac.age.index=12
+demog_data = demog_data
+
 EXt0 <- EX <- EX.Country.part1(uncode=setup$uncode,
                                generation.time = 0.5,
                                age.classes = c(1:240, seq(252,1212,12)),
@@ -39,9 +60,10 @@ EXt0 <- EX <- EX.Country.part1(uncode=setup$uncode,
                                vynnycky.waifw.betas = c(2,1),
                                asdr.object=setup$asdr.object,
                                year=year,
-                               use_montagu_demog=FALSE,
+                               use_montagu_demog=TRUE, # question about this parameter
                                routine.vac=0,
-                               routine.vac.age.index=12)
+                               routine.vac.age.index=12,
+                               demog_data = demog_data)
 print("transients done")
 
 #NO VACCINATION SCENARIO

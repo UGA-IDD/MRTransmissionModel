@@ -26,13 +26,13 @@ create.ID.transition.MSIRV.SIA(
 )
 }
 \arguments{
-\item{n.age.class}{xxx}
+\item{n.age.class}{the number of age classes}
 
-\item{aging.rate}{xxx}
+\item{aging.rate}{the rate which people move to the next age class}
 
-\item{survival.rate}{xxx}
+\item{survival.rate}{the percent who survive at each time step}
 
-\item{waifw}{xxx}
+\item{waifw}{whom acquires infection from whom matrix}
 
 \item{routine.vac}{xxx}
 
@@ -42,7 +42,7 @@ create.ID.transition.MSIRV.SIA(
 
 \item{time.step}{xxx}
 
-\item{age.class}{xxx}
+\item{age.class}{the actual age classes defined by upper age in class}
 
 \item{birth.rate}{xxx}
 

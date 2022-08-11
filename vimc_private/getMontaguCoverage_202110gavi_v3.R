@@ -12,7 +12,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
   #Also Estimating inaccessible at the same time, because it depends on routine estimates
   #Inaccessible from DPT1 numbers over time
-  dtp <- read.csv("./data/dtp1_estimates.csv")
+  dtp <- readRDS("vimc_private/dtp1_estimates.RDS")
   dtp.c <- dtp[dtp$ISO_code==iso3code,]
   dtp.c <- dtp.c[order(dtp.c$Year),]
   dtp.1980.to.2100 <- dtp.c$vacc_coverage[1:length(1980:2017)]
@@ -25,7 +25,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
   }
 
   #CAMPAIGN DEFAULT SCENARIO
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-campaign-default.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-campaign-default.csv")
   #unique(data$activity_type)
   #unique(data$vaccine) #check vaccine types
   if (length(unique(data$activity_type))>1) print("campaign default has other activity_types") #check activity types
@@ -52,7 +52,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #CAMPAIGN BESTCASE SCENARIO
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-campaign-ia2030_target.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-campaign-ia2030_target.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   if (length(unique(data$activity_type))>1) print("campaign bestcase has other activity_types") #check activity types
@@ -80,7 +80,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #RCV1 DEFAULT SCENARIO
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-rcv1-default.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-rcv1-default.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   if (any(unique(data$vaccine)=="RCV2")) print("RCV2 listed in rcv1_default")
@@ -127,7 +127,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #RCV1 BESTCASE SCENARIO
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-rcv1-ia2030_target.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-rcv1-ia2030_target.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   if (any(unique(data$vaccine)=="RCV2")) print("RCV2 listed in rcv1_bestcase")
@@ -175,7 +175,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #RCV2 DEFAULT SCENARIO  (this one has campaign)
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-rcv2-default.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-rcv2-default.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   dfx.tmp <- data[data$vaccine=="Rubella" & data$activity_type=="routine" & data$coverage!=0,]
@@ -238,7 +238,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #RCV2 BESTCASE SCENARIO (this one has campaign)
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-rcv2-ia2030_target.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-rcv2-ia2030_target.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   dfx.tmp <- data[data$vaccine=="Rubella" & data$activity_type=="routine" & data$coverage!=0,]
@@ -302,7 +302,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #RCV1 & RCV2 DEFAULT SCENARIO (this one has no campaign)
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-rcv1-rcv2-default.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-rcv1-rcv2-default.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   dfx.tmp <- data[data$vaccine=="Rubella" & data$activity_type=="routine" & data$coverage!=0,]
@@ -366,7 +366,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #RCV1 & RCV2 BESTCASE SCENARIO (this one has no campaign)
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-rcv1-rcv2-ia2030_target.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-rcv1-rcv2-ia2030_target.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   dfx.tmp <- data[data$vaccine=="Rubella" & data$activity_type=="routine" & data$coverage!=0,]
@@ -429,7 +429,7 @@ getMontaguCoverage_202110gavi_v3 <- function(iso3code){
 
 
   #NO VACCINATION SCENARIO
-  data <- read.csv("./data/montagu_coverage_data/202110gavi_v3/rubella-routine-no-vaccination.csv")
+  data <- read.csv("vimc_private/montagu_coverage_data/202110gavi_v3/rubella-routine-no-vaccination.csv")
   #unique(data$activity_type) #check activity types
   #unique(data$vaccine) #check vaccine types
   #dfx <- data[data$vaccine=="Rubella" & data$activity_type=="routine" & data$coverage!=0,]

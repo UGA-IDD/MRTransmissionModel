@@ -7,9 +7,9 @@
 get.prem.WAIFW(
   age.class.boundries = (1:90),
   uncode,
-  other.contact.matrix = F,
+  other.contact.matrix = FALSE,
   bandwidth = c(3, 3),
-  adjustment_start_year = F,
+  adjustment_start_year = FALSE,
   year = 1980
 )
 }

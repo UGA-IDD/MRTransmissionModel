@@ -28,7 +28,7 @@ setupCountry_202110gavi_v3 <- function(country){
   asdr.object <- demog$asdr.object
   repro.age.sex.dist.1950.2100 <- demog$repro.age.sex.dist.1950.2100
 
-  #Coverage estiamtes from Montagu, and inaccessible population
+  #Coverage estimates from Montagu, and inaccessible population
   coverage <- getMontaguCoverage_202110gavi_v3(iso3code)
 
   #set up the births function

@@ -15,12 +15,12 @@ getDemography <- function(uncode=NA){
   age.classes <- 0:100
 
   #Population
-  df <- read.csv("./data/montagu_dem_data/202110gavi_v3/pop.csv")
+  df <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/pop.csv")
   pop.total.1950.2100 <- df[which(df$country_code_numeric==cc),"value"]
   pop.total.1950.2100 <- c(pop.total.1950.2100, rep(pop.total.1950.2100[length(pop.total.1950.2100)], 5))/1000
 
   #Age Structure
-  df <- read.csv("./data/montagu_dem_data/202110gavi_v3/pop.age.csv")
+  df <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/pop.age.csv")
   pop.age.byageclasses.1950.2100 <- matrix(df[which(df$country_code_numeric==cc & df$year>1949),"value"], nrow=101, ncol=151)
   add <- matrix(rep(pop.age.byageclasses.1950.2100[,151], each=5), ncol=5, byrow=T)
   pop.age.byageclasses.1950.2100 <- cbind(pop.age.byageclasses.1950.2100, add)/1000
@@ -28,7 +28,7 @@ getDemography <- function(uncode=NA){
   colnames(pop.age.byageclasses.1950.2100) <- time
 
   #Sex Distribution by age and over time
-  dff <- read.csv("./data/montagu_dem_data/202110gavi_v3/pop.age.fem.csv")
+  dff <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/pop.age.fem.csv")
   pop.age.byageclasses.1950.2100.f <- matrix(dff[which(dff$country_code_numeric==cc & dff$year>1949),"value"], nrow=101, ncol=151)
   add <- matrix(rep(pop.age.byageclasses.1950.2100.f[,151], each=5), ncol=5, byrow=T)
   pop.age.byageclasses.1950.2100.f <- cbind(pop.age.byageclasses.1950.2100.f, add)/1000
@@ -45,12 +45,12 @@ getDemography <- function(uncode=NA){
   colnames(repro.age.sex.dist.1950.2100) <- time
 
   #Life expectancy
-  df <- read.csv("./data/montagu_dem_data/202110gavi_v3/e0.csv")
+  df <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/e0.csv")
   e0.1950.2100 <- df[which(df$country_code_numeric==cc),"value"]
   e0.1950.2100 <- c(e0.1950.2100, rep(e0.1950.2100[length(e0.1950.2100)], 5))
 
   #age-specific fertility rate
-  df <- read.csv("./data/montagu_dem_data/202110gavi_v3/asfr.csv")
+  df <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/asfr.csv")
   asfr.1950.2100.by5 <- matrix(df[which(df$country_code_numeric==cc),"value"], nrow=length(unique(df$age_from)), ncol=length(unique(df$year)))
   #asfr.1950.2100 <- matrix(apply(asfr.1950.2100.by5, 1, function(x) rep(x, each=5)), ncol=(5*ncol(asfr.1950.2100.by5)), byrow=T)
   #smooth over years instead of just repreating as above line does - xxamy
@@ -64,13 +64,13 @@ getDemography <- function(uncode=NA){
   asfr.1950.2100[which(asfr.1950.2100<0)] <- 0 #if less than 0, force to 0 (issue with Armenia)
 
   #crude birth rate
-  df <- read.csv("./data/montagu_dem_data/202110gavi_v3/cbr.csv")
+  df <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/cbr.csv")
   cbr.1950.2100 <- df[which(df$country_code_numeric==cc),"value"]
   cbr.1950.2100 <- c(cbr.1950.2100, rep(cbr.1950.2100[length(cbr.1950.2100)], 6))*1000
   names(cbr.1950.2100) <- time
 
   #Age Specific Death Rates
-  df <- read.csv("./data/montagu_dem_data/202110gavi_v3/asdr.csv")
+  df <- read.csv("vimc_private/montagu_dem_data/202110gavi_v3/asdr.csv")
   asdr.1950.2100.by5 <- matrix(df[which(df$country_code_numeric==cc),"value"],  nrow=length(unique(df$age_from)), ncol=length(unique(df$year)))
   asdr.1950.2100.by5 <- cbind(asdr.1950.2100.by5, asdr.1950.2100.by5[,length(unique(df$year))])
   mid.age <- unique(df$age_from) + (unique(df$age_to)-unique(df$age_from))/2

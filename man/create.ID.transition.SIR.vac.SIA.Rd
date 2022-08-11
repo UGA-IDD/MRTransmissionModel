@@ -2,7 +2,7 @@
 % Please edit documentation in R/create.ID.transition.SIR.vac.SIA.R
 \name{create.ID.transition.SIR.vac.SIA}
 \alias{create.ID.transition.SIR.vac.SIA}
-\title{Method to create an ID.transtion.SIR.vac object}
+\title{Method to create an ID.transition.SIR.vac object}
 \usage{
 create.ID.transition.SIR.vac.SIA(
   n.age.class,
@@ -26,13 +26,13 @@ create.ID.transition.SIR.vac.SIA(
 )
 }
 \arguments{
-\item{n.age.class}{xxx}
+\item{n.age.class}{the number of age classes}
 
-\item{aging.rate}{xxx}
+\item{aging.rate}{the rate which people move to the next age class}
 
-\item{survival.rate}{xxx}
+\item{survival.rate}{the percent who survive at each time step}
 
-\item{waifw}{xxx}
+\item{waifw}{whom acquires infection from whom matrix}
 
 \item{routine.vac}{xxx}
 
@@ -40,9 +40,9 @@ create.ID.transition.SIR.vac.SIA(
 
 \item{time.step}{xxx}
 
-\item{age.class}{xxx}
+\item{age.class}{the actual age classes defined by upper age in class}
 
-\item{n.epi.class}{xxx}
+\item{n.epi.class}{the number of states in the model}
 
 \item{birth.rate}{xxx}
 
@@ -64,5 +64,5 @@ create.ID.transition.SIR.vac.SIA(
 transition matrix
 }
 \description{
-Method to create an ID.transtion.SIR.vac object
+Method to create an ID.transition.SIR.vac object
 }

@@ -1,14 +1,14 @@
 #' Method to create an ID.transition.MSIRV object
 #'
-#' @param n.age.class xxx
-#' @param aging.rate xxx
-#' @param survival.rate xxx
-#' @param waifw xxx
+#' @param n.age.class the number of age classes
+#' @param aging.rate the rate which people move to the next age class
+#' @param survival.rate the percent who survive at each time step
+#' @param waifw whom acquires infection from whom matrix
 #' @param routine.vac xxx
 #' @param routine.vac.age.index xxx
 #' @param maternal.obj xxx
 #' @param time.step xxx
-#' @param age.class xxx
+#' @param age.class the actual age classes defined by upper age in class
 #' @param birth.rate xxx
 #' @param sia.vac xxx
 #' @param sia.vsucc xxx

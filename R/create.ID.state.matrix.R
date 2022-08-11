@@ -3,7 +3,7 @@
 #' @param n.age.class the number of age classes
 #' @param n.epi.class the number of states in the model
 #' @param epi.class.label the names of the states
-#' @param value starting values, defauls to all 0
+#' @param value starting values, defaults to all 0
 #'
 #' @importFrom methods new
 #' @return an ID.state.matrix object

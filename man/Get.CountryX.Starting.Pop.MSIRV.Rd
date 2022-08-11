@@ -15,14 +15,15 @@ Get.CountryX.Starting.Pop.MSIRV(
   tot.pop = NULL,
   yr.births.per.1000,
   intro.rate = intro.rate,
-  flat.WAIFW = F,
+  flat.WAIFW = FALSE,
   asdr.object = NULL,
   targeted.intro = FALSE,
   year = 1990,
   get.births,
-  use_montagu_demog = T,
+  use_montagu_demog = TRUE,
   routine.vac = 0,
-  routine.vac.age.index = 12
+  routine.vac.age.index = 12,
+  demog_data = NULL
 )
 }
 \arguments{
@@ -56,11 +57,13 @@ Get.CountryX.Starting.Pop.MSIRV(
 
 \item{get.births}{xxx}
 
-\item{use_montagu_demog}{xxx}
+\item{use_montagu_demog}{logical; if TRUE use montagu demography data}
 
 \item{routine.vac}{xxx}
 
 \item{routine.vac.age.index}{xxx}
+
+\item{demog_data}{optional demography data for use if use_montagu_demog = TRUE}
 }
 \value{
 starting state and transition object

@@ -1,14 +1,14 @@
 #' Method to create an ID.transtion.SIR.vac object
 #'
-#' @param n.age.class xxx
-#' @param aging.rate xxx
-#' @param survival.rate xxx
-#' @param waifw xxx
+#' @param n.age.class the number of age classes
+#' @param aging.rate the rate which people move to the next age class
+#' @param survival.rate the percent who survive at each time step
+#' @param waifw whom acquires infection from whom matrix
 #' @param routine.vac xxx
 #' @param routine.vac.age.index xxx
 #' @param time.step xxx
-#' @param age.class xxx
-#' @param n.epi.class xxx
+#' @param age.class the actual age classes defined by upper age in class
+#' @param n.epi.class the number of states in the model
 #' @param birth.rate xxx
 #' @param introduction.rate xxx
 #' @param exponent xxx

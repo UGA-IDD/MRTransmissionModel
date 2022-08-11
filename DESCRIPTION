@@ -70,5 +70,4 @@ Collate:
     'run.R'
     'scaleWAIFW.R'
     'setupCountry.Dec2021.R'
-    'testwppdata.R'
     'toProportions.R'
