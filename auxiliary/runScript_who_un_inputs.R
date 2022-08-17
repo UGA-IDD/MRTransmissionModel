@@ -1,18 +1,9 @@
 rm(list = ls())
 gc()
 
-devtools::document()
-devtools::build()
-devtools::install()
-
 library(MRTransmissionModel)
 
-# source("vimc_private/Rfunctions/getDemography.R")
-# source("vimc_private/Rfunctions/getMontaguCoverage_202110gavi_v3.R")
-# source("vimc_private/Rfunctions/setupCountry_202110gavi_v3.R")
-
 setup <- setupCountry.Dec2021(country="Albania")
-#setup <- setupCountry_202110gavi_v3(country="ZMB")
 year <- 1980
 t.max <- length(year:2100)
 
