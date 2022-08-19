@@ -36,6 +36,7 @@ EXt0 <- EX <- EX.Country.part1(uncode=setup$uncode,
                                routine.vac=0,
                                routine.vac.age.index=12,
                                demog_data = demog_data) # have to add demog_data in for vimc inputs
+EXt0
 print("transients done")
 
 #NO VACCINATION SCENARIO
@@ -86,40 +87,6 @@ output_n <- getOutput_201910gavi_v4(sim.res=tmpr, t.max=t.max, setup=setup, year
 
 #RCV2 BESTCASE SCENARIO
 cov.scenario <- setup$coverage$rcv2_bestcase
-
-# for testing
-uncode = setup$uncode
-generation.time = 0.5
-pop.rescale=setup$pop.total.1950.2100[seq(1990,(year+t.max-10),10)-1950+1]
-pop.time=seq(1990,(year+t.max-10),10)-year
-is.stochastic=TRUE
-get.births=setup$get.births.here
-t.max = length(year:2100)
-rescale.WAIFW=FALSE
-yr.births.per.1000.acrossyears=setup$cbr.1950.2100[(year-1950+1):((year-1950+1)+t.max)]
-asdr.object=setup$asdr.object
-year=1980
-EXt0=EXt0
-time.specific.MR1cov =  cov.scenario@MR1.cov
-time.specific.MR2cov = cov.scenario@MR2.cov
-time.specific.SIAcov =   cov.scenario@sia.cov
-time.specific.min.age.MR1 = rep(1, length(cov.scenario@MR1.cov))
-time.specific.max.age.MR1 = rep(24, length(cov.scenario@MR1.cov))
-time.specific.min.age.MR2 = rep(25, length(cov.scenario@MR1.cov))
-time.specific.max.age.MR2 = rep(36, length(cov.scenario@MR1.cov))
-time.specific.min.age.SIA = cov.scenario@sia.min.age
-time.specific.max.age.SIA = cov.scenario@sia.max.age
-obj.vcdf.MR1 = get.MR1cdf.survival(uncode=setup$uncode, 1, 24) #get.vcdf.uniform(12, 23)
-obj.vcdf.MR2 = get.vcdf.normal(25, 36) #get.vcdf.uniform(24, 35)
-obj.prob.vsucc = pvacsuccess(1:(20*12), get.boulianne.vsucc())
-sia.timing.in.year = (1/12)
-MR1MR2correlation = TRUE
-MR1SIAcorrelation = FALSE
-MR2SIAcorrelation = FALSE
-SIAinacc = TRUE
-prop.inacc = cov.scenario@inaccessible.prop
-SIAinefficient = TRUE
-
 
 tmp_rcv2_best <- EX.Country.part2(uncode = setup$uncode,
                                   generation.time = 0.5,

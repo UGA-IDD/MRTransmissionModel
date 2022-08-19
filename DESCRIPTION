@@ -1,9 +1,10 @@
 Package: MRTransmissionModel
 Title: Fit Disease Transmission Models
 Version: 1.0.0
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+Authors@R: c(person("Lauren", "Hoskovec", role = c("aut", "cre"), email = "lhoskovec@west-inc.com"),
+       person("Amy","Winter",role=c("aut"), email = "awinter@uga.edu"))
+Author: Lauren Hoskovec [aut, cre],
+ Amy Winter [aut]
 Description: Fits matrix population VSIR models. 
 License: GPL (>= 2)
 Encoding: UTF-8
