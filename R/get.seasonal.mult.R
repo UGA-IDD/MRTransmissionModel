@@ -4,7 +4,6 @@
 #' @param t.in.yr time of the year in fraction of 1 year
 #' @param season.obj an object encoding the seasonality
 #'
-#' @import pomp
 #' @include setClasses.R
 #' @return the seasonal multiplier, or series thereof
 #'
@@ -22,18 +21,6 @@ setMethod("get.seasonal.mult",
           function(t.in.yr, season.obj) {
             mult <- 1+ season.obj@amplitude *
               cos(2*season.obj@period*pi*(t.in.yr+season.obj@offset))
-            return(mult)
-          })
-
-#' @rdname get.seasonal.mult-methods
-#' @aliases get.seasonal.mult,numeric,seasonal.periodic.bspline-method
-setMethod("get.seasonal.mult",
-          c("numeric","seasonal.periodic.bspline"),
-          function(t.in.yr, season.obj) {
-
-            y <- pomp::periodic.bspline.basis(t.in.yr,nbasis=season.obj@nbasis,
-                                        degree=season.obj@degree,period=season.obj@period)
-            mult <- y%*%season.obj@parameters
             return(mult)
           })
 

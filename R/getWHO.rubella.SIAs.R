@@ -5,7 +5,7 @@
 #' @param upper.limit upper coverage limit as proportion
 #'
 #' @importFrom readxl read_excel
-#' @importFrom dplyr filter
+#' @import dplyr
 #'
 #' @return age range, year, and coverage of each SIA
 #' @export
@@ -19,11 +19,11 @@ getWHO.rubella.SIAs <- function(iso3code, uncode, upper.limit=0.97){
 
   #df <- read_excel("./data/SIAs_WHO_DownloadedDec2021.xls", sheet="SIAs_2000_2022")
   df <- df %>%
-    filter(Intervention !="MCV", Intervention !="measles", Intervention !="Measles") %>%
-    filter(Activity=="Campaign" | Activity=="CatchUp" | Activity=="FollowUp" | Activity=="SIA") %>%
-    filter(Extent!="unknown") %>%
-    filter(`Implementation status` =="done") %>%
-    filter(!is.na(Year),
+    dplyr::filter(Intervention !="MCV", Intervention !="measles", Intervention !="Measles") %>%
+    dplyr::filter(Activity=="Campaign" | Activity=="CatchUp" | Activity=="FollowUp" | Activity=="SIA") %>%
+    dplyr::filter(Extent!="unknown") %>%
+    dplyr::filter(`Implementation status` =="done") %>%
+    dplyr::filter(!is.na(Year),
            !is.na(`Age group`))
 
   mtch <- which(df$`ISO3 code`==iso3code,arr.ind=TRUE)

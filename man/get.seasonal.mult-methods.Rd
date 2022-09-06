@@ -4,7 +4,6 @@
 \name{get.seasonal.mult}
 \alias{get.seasonal.mult}
 \alias{get.seasonal.mult,numeric,seasonal.cosine-method}
-\alias{get.seasonal.mult,numeric,seasonal.periodic.bspline-method}
 \alias{get.seasonal.mult,numeric,seasonal.piecewise.constant-method}
 \alias{get.seasonal.mult,numeric,seasonal.age.specific-method}
 \alias{get.seasonal.mult,numeric,seasonal.age.specific.piecewise.constant-method}
@@ -13,8 +12,6 @@
 get.seasonal.mult(t.in.yr, season.obj)
 
 \S4method{get.seasonal.mult}{numeric,seasonal.cosine}(t.in.yr, season.obj)
-
-\S4method{get.seasonal.mult}{numeric,seasonal.periodic.bspline}(t.in.yr, season.obj)
 
 \S4method{get.seasonal.mult}{numeric,seasonal.piecewise.constant}(t.in.yr, season.obj)
 

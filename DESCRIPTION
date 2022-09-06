@@ -7,12 +7,12 @@ Author: Lauren Hoskovec [aut, cre],
  Amy Winter [aut]
 Description: Fits matrix population VSIR models. 
 License: GPL (>= 2)
+Imports: methods, zoo, KernSmooth, readxl
 Encoding: UTF-8
-Imports: Rcpp (>= 1.0.5), methods, countrycode, wpp2017, wpp2019, dplyr, survival, zoo, KernSmooth, pomp, readxl
+NeedsCompilation: yes
+ByteCompile: yes
 LazyData: true
-Depends: R(>= 3.5.0)
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+Depends: R(>= 3.5.0), countrycode, wpp2017, wpp2019, dplyr, survival
 Collate: 
     'setClasses.R'
     'EX.Country.part1.R'
@@ -72,3 +72,4 @@ Collate:
     'scaleWAIFW.R'
     'setupCountry.Dec2021.R'
     'toProportions.R'
+RoxygenNote: 7.1.2

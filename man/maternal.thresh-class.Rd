@@ -6,7 +6,7 @@
 \title{Class for maternal immunity threshold}
 \description{
 Assume that there is some threshold age at which
-you are 100\% protected if this age or younger
+you are 100% protected if this age or younger
 }
 \section{Slots}{
 

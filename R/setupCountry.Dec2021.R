@@ -3,7 +3,7 @@
 #' @param country character; country name
 #'
 #' @import countrycode
-#' @importFrom dplyr filter select mutate
+#' @import dplyr
 #' @importFrom utils read.csv
 #' @importFrom readxl read_xlsx
 #'
