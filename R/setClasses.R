@@ -576,7 +576,6 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations",
 #'
 #' @export
 #'
-#' @examples
 #' @docType class
 #' @rdname experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial-class
 setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial",
