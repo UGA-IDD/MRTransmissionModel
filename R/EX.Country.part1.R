@@ -130,8 +130,11 @@ EX.Country.part1 <- function(uncode,
   EX@state.t0[EX@trans@s.inds,1][EX@trans@age.class>60] <-0
   # Get rid of negatives
   EX@state.t0[which(EX@state.t0[,1]<0),1] <- 0
-  # Run out transients - plot if you want to be sure...
 
+  # No rescaling of population -
+  EX@pop.rescale.each.timestep <- 0 #--xxamy - added this lines because when changed pop.rescale.each.timestep to "ANY" is became NULL by default but we need it to be a 0
+
+  # Run out transients - plot if you want to be sure...
   res <- run(EX, rescale.WAIFW=T)
   #plot(res@result)
 

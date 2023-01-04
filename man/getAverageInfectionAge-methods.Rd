@@ -4,11 +4,14 @@
 \name{getAverageInfectionAge}
 \alias{getAverageInfectionAge}
 \alias{getAverageInfectionAge,sim.results.SIR-method}
+\alias{getAverageInfectionAge,sim.results.MSIRV-method}
 \title{Get the average age of infection at each time point}
 \usage{
 getAverageInfectionAge(sim.res, ...)
 
 \S4method{getAverageInfectionAge}{sim.results.SIR}(sim.res)
+
+\S4method{getAverageInfectionAge}{sim.results.MSIRV}(sim.res)
 }
 \arguments{
 \item{sim.res}{object of type sim.results.SIR}

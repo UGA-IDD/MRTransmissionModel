@@ -9,6 +9,12 @@
 \alias{run,experiment.updatedmog.vaccinationchange,ANY-method}
 \alias{run,experiment.updatedemog.vaccinationchange.vaccinationlimitations-method}
 \alias{run,experiment.updatedemog.vaccinationchange.vaccinationlimitations,ANY-method}
+\alias{run,experiment.updatedemog.vaccinationchange.spatial-method}
+\alias{run,experiment.updatedemog.vaccinationchange.spatial,ANY-method}
+\alias{run,experiment.updatedemog.spatial-method}
+\alias{run,experiment.updatedemog.spatial,ANY-method}
+\alias{run,experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial-method}
+\alias{run,experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial,ANY-method}
 \title{Methods to run experiment}
 \usage{
 run(exper, ...)
@@ -18,6 +24,12 @@ run(exper, ...)
 \S4method{run}{experiment.updatedemog.vaccinationchange}(exper, rescale.WAIFW = TRUE, ...)
 
 \S4method{run}{experiment.updatedemog.vaccinationchange.vaccinationlimitations}(exper, rescale.WAIFW = TRUE, ...)
+
+\S4method{run}{experiment.updatedemog.vaccinationchange.spatial}(exper, rescale.WAIFW = T, ...)
+
+\S4method{run}{experiment.updatedemog.spatial}(exper, rescale.WAIFW = T, ...)
+
+\S4method{run}{experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial}(exper, rescale.WAIFW = T, ...)
 }
 \arguments{
 \item{exper}{the experiment object}

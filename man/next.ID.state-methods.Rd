@@ -6,6 +6,7 @@
 \alias{next.ID.state,ID.state.matrix,ID.transition.SIR-method}
 \alias{next.ID.state,ID.state.matrix,ID.transition.SIR.vac-method}
 \alias{next.ID.state,ID.state.matrix,ID.transition.MSIRV-method}
+\alias{next.ID.state,ID.state.matrix,ID.transition.MSIRV.space-method}
 \title{Methods for Getting State at Next Time Step (next.ID.state methods)}
 \usage{
 next.ID.state(state, tran, ...)
@@ -15,6 +16,8 @@ next.ID.state(state, tran, ...)
 \S4method{next.ID.state}{ID.state.matrix,ID.transition.SIR.vac}(state, tran)
 
 \S4method{next.ID.state}{ID.state.matrix,ID.transition.MSIRV}(state, tran)
+
+\S4method{next.ID.state}{ID.state.matrix,ID.transition.MSIRV.space}(state, tran)
 }
 \arguments{
 \item{state}{current state system (ID.state.matric)}

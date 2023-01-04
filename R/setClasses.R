@@ -219,23 +219,23 @@ setClass("vacc.per.time.step.by.age",
 #' @rdname ID.transition.SIR-class
 setClass("ID.transition.SIR",
          slots = list(n.epi.class="numeric", #number of different epi classes
-                      epi.class="numeric", #the epi class of each row, between 1 and n.epi.classes
-                      epi.class.label = "character", #epi class labels
-                      s.inds = "numeric", #indexes of the susceptible states
-                      i.inds = "numeric", #indexes of the infectious states
-                      r.inds = "numeric", #indexes of the recovered states
-                      n.age.class = "numeric", #the number of age classes
-                      age.class = "numeric",#the actual age classes defined by upper age in class
-                      aging.rate = "numeric", #percent that age out of each age class at each time step
-                      survival.rate = "numeric", #the percent who survive in this age class at each time step
-                      birth.rate = "numeric", #the birth rate for this transition
-                      waifw = "matrix", #who acquires infection from whom matrix
-                      age.surv.matrix = "matrix", #matrix governing age/survival
-                      introduction.rate = "numeric", #an vector of possibly 0 case importation rates in each age class
-                      exponent = "numeric",        #exponent on infecteds to correct for discretization
-                      frequency.dep = "logical",	#true/false indicating if freq. dependence or density dep. is implemented
-                      is.stochastic = "logical",   #true/false indicating if stochasticity desired
-                      get.births = "function" #a function that takes state and birth rate; allowing births to be shaped by pop struct
+                        epi.class="numeric", #the epi class of each row, between 1 and n.epi.classes
+                        epi.class.label = "character", #epi class labels
+                        s.inds = "numeric", #indexes of the susceptible states
+                        i.inds = "numeric", #indexes of the infectious states
+                        r.inds = "numeric", #indexes of the recovered states
+                        n.age.class = "numeric", #the number of age classes
+                        age.class = "numeric",#the actual age classes defined by upper age in class
+                        aging.rate = "numeric", #percent that age out of each age class at each time step
+                        survival.rate = "ANY", #the percent who survive in this age class at each time step -- xxamy changed to "ANY"
+                        birth.rate = "ANY", #the birth rate for this transition -- xxamy changed to "ANY"
+                        waifw = "matrix", #who acquires infection from whom matrix
+                        age.surv.matrix = "matrix", #matrix governing age/survival
+                        introduction.rate = "numeric", #an vector of possibly 0 case importation rates in each age class
+                        exponent = "numeric",        #exponent on infecteds to correct for discretization
+                        frequency.dep = "logical",	#true/false indicating if freq. dependence or density dep. is implemented
+                        is.stochastic = "logical",   #true/false indicating if stochasticity desired
+                        get.births = "function" #a function that takes state and birth rate; allowing births to be shaped by pop struct
          ))
 
 #' Generates object of class ID.transition.SIR.vac
@@ -325,6 +325,23 @@ setClass("ID.transition.MSIRV.SIA",
          contains = "ID.transition.SIR.vac.SIA"
 )
 
+#' Class to represent transitions in the context of vaccination and maternal antibodies with multiple locations
+#'
+#' @slot n.subpops numeric
+#' @slot subpop.class.label numeric
+#' @slot coupling matrix
+#'
+#' @export
+#' @docType class
+#' @rdname ID.transition.MSIRV.space-class
+setClass("ID.transition.MSIRV.space",
+         representation(n.subpops = "numeric", #total number of locations
+                        subpop.class.label = "numeric", #location index
+                        coupling = "matrix"), #matrix of connection between each sub-population
+         contains = "ID.transition.MSIRV.SIA"
+)
+
+
 #' Generate object of class ID.transition.MSIRV
 #'
 #' Class to represent transitions in the context of vaccination
@@ -351,6 +368,7 @@ setClass("ID.transition.MSIRV",
 #' ID.state.matrix from one time step to another, and contains all the fun stuff
 #' we need to do the transition (i.e., the matrix)
 #'
+#' @slot rate.years numeric.
 #' @slot rates data.frame.
 #' @slot mid.age numeric.
 #'
@@ -358,8 +376,9 @@ setClass("ID.transition.MSIRV",
 #' @docType class
 #' @rdname nMx-class
 setClass("nMx",
-         slots = list(rates="data.frame", #age specific death rates per 1 from 1950 to 2100 by 5 year increments
-                      mid.age="numeric" #mid-age associated with rates,
+         slots = list(rate.years="numeric", #year associated with each time-specific rates --xxamy added this new object rate.years
+                        rates="data.frame", #age specific death rates per 1 (rows) by time (columns)
+                        mid.age="numeric" #mid-age associated with age-specific rates
          ))
 
 #' Generate and object of class vaccine.cdf.byage
@@ -428,7 +447,7 @@ setClass("experiment",
                       step.size = "numeric", #the step size in years, 1/no.gens.per.year
                       trans = "ID.transition.SIR", #defines the transitions for this experiment
                       season.obj = "seasonal.force", #seasonal forcing function
-                      births.per.1000.each.timestep = "numeric", #the estimated crude birth rate per time step, length is T
+                      births.per.1000.each.timestep = "ANY", #the estimated crude birth rate per time step, length is T
                       description = "character" #describe the experiment
          ))
 
@@ -462,9 +481,23 @@ setClass("experiment.SIAtrigger",
 setClass("experiment.updatedemog",
          slots = list(trans = "ID.transition.SIR.vac", #the transitions for this experiment - xxamy added this
                       surv.each.timestep = "matrix", #the estimated age-specific survival rates over the length of the experiment, ncol is T
-                      pop.rescale.each.timestep = "numeric", #a vector of 0's if not call for population rescale, if !=0 then rescale by this pop number
+                      pop.rescale.each.timestep = "ANY", #a vector of 0's if not call for population rescale, if !=0 then rescale by this pop number
                       maternal.obj = "maternal.exp.decay"),  #maternal antibody object
          contains=c("experiment"))
+
+
+
+#' Class for a spatial experiment updating demography over time
+#'
+#' @slot trans ID.transition.MSIRV.space.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.spatial-class
+setClass("experiment.updatedemog.spatial",
+         slots = list(trans = "ID.transition.MSIRV.space"),
+         contains=c("experiment.updatedemog"))
+
 
 
 #' Class for an experiment with changing vaccination coverage over time
@@ -487,20 +520,33 @@ setClass("experiment.updatedemog",
 #' @docType class
 #' @rdname experiment.updatedemog.vaccinationchange-class
 setClass("experiment.updatedemog.vaccinationchange",
-         slots = list(time.specific.MR1cov = "vector", #vector of values of the coverage values
-                      time.specific.MR2cov = "vector", #vector of values of the coverage values
-                      time.specific.SIAcov = "vector", #vector of values of the coverage values
-                      time.specific.min.age.MR1 = "vector",
-                      time.specific.max.age.MR1 = "vector",
-                      time.specific.min.age.MR2 = "vector",
-                      time.specific.max.age.MR2 = "vector",
-                      time.specific.min.age.SIA = "vector",
-                      time.specific.max.age.SIA = "vector",
-                      obj.vcdf.MR1 = "vaccine.cdf.byage",
-                      obj.vcdf.MR2 = "vaccine.cdf.byage",
-                      obj.prob.vsucc = "prob.vsucc.byage",
-                      sia.timing.in.year = "vector"), #time of the SIA in years (e.g., 0.5 is July of the year)
+         slots = list(time.specific.MR1cov = "ANY", #vector of values of the coverage values --xxamy changed to "ANY"
+                        time.specific.MR2cov = "ANY", #vector of values of the coverage values --xxamy changed to "ANY"
+                        time.specific.SIAcov = "ANY", #vector of values of the coverage values --xxamy changed to "ANY"
+                        time.specific.min.age.MR1 = "ANY", #--xxamy changed to "ANY"
+                        time.specific.max.age.MR1 = "ANY", #--xxamy changed to "ANY"
+                        time.specific.min.age.MR2 = "ANY", #--xxamy changed to "ANY"
+                        time.specific.max.age.MR2 = "ANY", #--xxamy changed to "ANY"
+                        time.specific.min.age.SIA = "ANY", #--xxamy changed to "ANY"
+                        time.specific.max.age.SIA = "ANY", #--xxamy changed to "ANY"
+                        obj.vcdf.MR1 = "vaccine.cdf.byage",
+                        obj.vcdf.MR2 = "vaccine.cdf.byage",
+                        obj.prob.vsucc = "prob.vsucc.byage",
+                        sia.timing.in.year = "ANY"), #time of the SIA in years (e.g., 0.5 is July of the year) --xxamy changed to "ANY"
          contains=c("experiment.updatedemog"))
+
+
+#' Class for a spatial experiment updating demography and with changing vaccination coverage over time
+#'
+#' @slot trans ID.transition.MSIRV.space.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange.spatial-class
+setClass("experiment.updatedemog.vaccinationchange.spatial",
+         slots = list(trans = "ID.transition.MSIRV.space"),
+         contains=c("experiment.updatedemog.vaccinationchange"))
+
 
 #' Class for an experiment
 #'
@@ -520,8 +566,23 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations",
                       MR2SIAcorrelation = "logical",
                       SIAinefficient = "logical",
                       SIAinacc = "logical",
-                      prop.inacc = "numeric"),
+                      prop.inacc = "ANY"),
          contains=c("experiment.updatedemog.vaccinationchange"))
+
+
+#' Class for a spatial vaccination experiment updating demography and with changing vaccination coverage over time, with vaccination limitations
+#'
+#' @slot trans ID.transition.MSIRV.space.
+#'
+#' @export
+#'
+#' @examples
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial-class
+setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial",
+         representation(trans = "ID.transition.MSIRV.space"),
+         contains=c("experiment.updatedemog.vaccinationchange.vaccinationlimitations"))
+
 
 
 #' Generate of object of class experiment result (sim.result)
@@ -567,6 +628,53 @@ setClass("sim.results.MSIRV",
          contains= "sim.results.SIR")
 
 
+#' Holds the results of a simulation with a MSIRV.space object
+#'
+#' @slot n.subpops numeric.
+#' @slot subpop.class.label numeric.
+#'
+#' @export
+#' @docType class
+#' @rdname sim.results.MSIRV.space-class
+setClass("sim.results.MSIRV.space",
+         representation(n.subpops = "numeric",
+                        subpop.class.label = "numeric"),
+         contains= "sim.results.MSIRV")
+
+
+#' Holds the results of a simulation with an experiment.updatedemog object
+#'
+#' @slot births.each.timestep ANY.
+#' @slot growth.rate.each.timestep ANY.
+#'
+#' @export
+#' @docType class
+#' @rdname sim.results.MSIRV.update.demog.space-class
+setClass("sim.results.MSIRV.update.demog.space",
+         representation(births.each.timestep = "ANY", #the number of births per time step as output from simulation
+                        growth.rate.each.timestep = "ANY"
+         ),
+         contains="sim.results.MSIRV.space")
+
+
+#' Holds the results output for a simulation with an experiment.updatedemog.vaccinationchange object
+#'
+#' @slot MR1.fail.each.timestep ANY.
+#' @slot MR2.fail.each.timestep ANY.
+#' @slot SIA.fail.each.timestep ANY.
+#'
+#' @export
+#' @docType class
+#' @rdname sim.results.MSIRV.update.demog.vaccine.change.space-class
+setClass("sim.results.MSIRV.update.demog.vaccine.change.space",
+         representation(MR1.fail.each.timestep = "ANY", #the number of births per time step as output from simulation
+                        MR2.fail.each.timestep = "ANY",
+                        SIA.fail.each.timestep = "ANY"
+         ),
+         contains="sim.results.MSIRV.update.demog.space")
+
+
+
 #' Holds the results of a simulation with an experiment.updatedemog object
 #'
 #' @slot births.each.timestep numeric.
@@ -576,8 +684,8 @@ setClass("sim.results.MSIRV",
 #' @docType class
 #' @rdname sim.results.MSIRV.update.demog-class
 setClass("sim.results.MSIRV.update.demog",
-         slots = list(births.each.timestep = "numeric", #the number of births per time step as output from simulation
-                      growth.rate.each.timestep = "numeric"
+         slots = list(births.each.timestep = "ANY", #the number of births per time step as output from simulation
+                      growth.rate.each.timestep = "ANY"
          ),
          contains="sim.results.MSIRV")
 
@@ -591,9 +699,9 @@ setClass("sim.results.MSIRV.update.demog",
 #' @docType class
 #' @rdname sim.results.MSIRV.update.demog.vaccine.change-class
 setClass("sim.results.MSIRV.update.demog.vaccine.change",
-         slots = list(MR1.fail.each.timestep = "numeric", #the number of births per time step as output from simulation
-                      MR2.fail.each.timestep = "numeric",
-                      SIA.fail.each.timestep = "numeric"
+         slots = list(MR1.fail.each.timestep = "ANY", #the number of births per time step as output from simulation
+                      MR2.fail.each.timestep = "ANY",
+                      SIA.fail.each.timestep = "ANY"
          ),
          contains="sim.results.MSIRV.update.demog")
 
@@ -611,5 +719,20 @@ setClass("experiment.result",
 
 
 
-
+#' Class definition for space.nMx object - aka Age Specific Death Rates (ASDR) - by space
+#'
+#' @slot rate.years numeric; year associated with each time-specific rate
+#' @slot rates data.frame; age and space specific death rates per 1 (rows) by year (columns)
+#' @slot mid.age numeric; mid-age associated with each age-specific rates
+#' @slot n.subpops numeric; number of subpopulations
+#'
+#' @export
+#' @docType class
+#' @rdname space.nMx-class
+setClass("space.nMx",
+         representation(rate.years="numeric", #year associated with each time-specific rate
+                        rates="data.frame", #age and space specific death rates per 1 (rows) by year (columns)
+                        mid.age="numeric", #mid-age associated with each age-specific rates
+                        n.subpops="numeric" #number of subpopulations
+         ))
 

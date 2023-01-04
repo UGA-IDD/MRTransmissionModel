@@ -75,3 +75,186 @@ setMethod("next.ID.state",
             return(rc)
           })
 
+
+# next ID state for MSIRV.space class
+#' @rdname next.ID.state-methods
+#'
+#'
+#' @aliases next.ID.state,ID.state.matrix,ID.transition.MSIRV.space-method
+setMethod("next.ID.state",
+          c("ID.state.matrix", "ID.transition.MSIRV.space"),
+          function (state, tran) {
+
+            #get the transition matrix
+            tran.matrix <- tran@age.surv.matrix
+
+            #get a spatial index on same scale as epi indexes
+            index.loc <-  tran@subpop.class.label[tran@i.inds]
+            one.loc <- index.loc==1
+
+            #define the phi matrix - assume for now same matrix
+            for (n in 1:tran@n.subpops) {
+              this.loc <- index.loc==n
+
+              #The vaccination logic
+              age.spec.vacc.prob <- tran@vac.per@pvacc.in.age.class[this.loc]
+
+              #M->V transition
+              tran.matrix[tran@v.inds[this.loc],tran@m.inds[one.loc]] <-  tran@age.surv.matrix[tran@v.inds[this.loc],tran@m.inds[one.loc]] *
+                age.spec.vacc.prob
+              #M->M transition
+              tran.matrix[tran@m.inds[this.loc],tran@m.inds[one.loc]] <-  tran@age.surv.matrix[tran@m.inds[this.loc],tran@m.inds[one.loc]] *
+                (1-age.spec.vacc.prob)
+              #M->S transition
+              tran.matrix[tran@s.inds[this.loc],tran@m.inds[one.loc]] <-  tran@age.surv.matrix[tran@s.inds[this.loc],tran@m.inds[one.loc]] *
+                (1-age.spec.vacc.prob)
+              #S->V transition
+              tran.matrix[tran@v.inds[this.loc],tran@s.inds[one.loc]] <-  tran@age.surv.matrix[tran@v.inds[this.loc],tran@s.inds[one.loc]] *
+                age.spec.vacc.prob
+              #S->S transition
+              tran.matrix[tran@s.inds[this.loc],tran@s.inds[one.loc]] <-  tran@age.surv.matrix[tran@s.inds[this.loc],tran@s.inds[one.loc]] *
+                (1-age.spec.vacc.prob)
+              #S->I transition
+              tran.matrix[tran@i.inds[this.loc],tran@s.inds[one.loc]] <-  tran@age.surv.matrix[tran@i.inds[this.loc],tran@s.inds[one.loc]] *
+                (1-age.spec.vacc.prob)
+
+
+              #define denominator of phi matrix - preventing NAs by setting min to 1
+              if (tran@frequency.dep) {denom<-max(sum(state[tran@subpop.class.label==n]),1)} else {denom<-1}
+
+              phi <- (tran@waifw%*%(state[tran@i.inds[this.loc],]^tran@exponent))/denom
+              phi <- 1 - exp(-phi)
+              phi <- matrix(phi, nrow=state@n.age.class ,
+                            ncol=state@n.age.class)
+              phi <- t(phi)
+
+              #print(c("phi",range(phi)))
+
+              #make susceptible part of matrix
+              tran.matrix[tran@s.inds[this.loc], tran@s.inds[one.loc]] <-
+                tran.matrix[tran@s.inds[this.loc], tran@s.inds[one.loc]] * (1-phi)
+
+              #make infected part of matrix
+              tran.matrix[tran@i.inds[this.loc], tran@s.inds[one.loc]] <-
+                tran.matrix[tran@i.inds[this.loc], tran@s.inds[one.loc]] * (phi)
+
+              #parametric fit
+              #prop local susceptibility (age specific)
+              age.struct.here <- (state[tran@m.inds[this.loc]]+state[tran@s.inds[this.loc]]+
+                                    state[tran@i.inds[this.loc]]+state[tran@r.inds[this.loc]]+
+                                    state[tran@v.inds[this.loc]])
+              xtj <- (state[tran@s.inds[this.loc]]/pmax(age.struct.here,1))
+              xtj <- xtj/length(tran@introduction.rate[this.loc]) #rescale since have multiple age classes
+              #print(c("xtj",range(xtj)))
+              #print(range(age.struct.here))
+
+              #prop non-local infectious - sum over age classes - broken down by location
+              #since need to multiply by each coupling par
+              yt <- sapply(split(state[tran@i.inds[!this.loc]],index.loc[!this.loc]),sum)/
+                pmax(sapply(split(state[tran@m.inds[!this.loc]]+state[tran@s.inds[!this.loc]]+
+                                    state[tran@i.inds[!this.loc]]+state[tran@r.inds[!this.loc]]+
+                                    state[tran@v.inds[!this.loc]],index.loc[!this.loc]),sum),1)
+
+              #ADD NEW GUYS TO THE INTRODUCTION.RATE FOR THIS SITE - at the moment distributed evenly over age
+              if (!tran@is.stochastic) {
+                tran@introduction.rate[this.loc] <-  tran@introduction.rate[this.loc] +
+                  (1-exp(-sum(tran@coupling[n,-n]*yt)*xtj))
+              } else {
+                immigs <- rbinom(length(xtj),1,pmax(1-exp(-sum(tran@coupling[n,-n]*yt)*xtj),0))
+                #print(yt); print(xtj); print(tran@coupling[n,-n])
+                #print(immigs)
+                if (sum(immigs)>0) {
+                  tran@introduction.rate[this.loc] <-
+                    rbinom(length(tran@i.inds[this.loc]),1,tran@introduction.rate[this.loc])+immigs
+
+                } else {
+                  tran@introduction.rate[this.loc] <-
+                    rbinom(length(tran@i.inds[this.loc]),1,tran@introduction.rate[this.loc])
+                }
+              }
+            }
+
+            #no one stays infected...
+            tran.matrix[tran@i.inds, tran@i.inds[one.loc]] <- 0
+
+            #print(c(unique(tran.matrix)))
+
+            if (!tran@is.stochastic) {
+
+              #loop over sites and multiply matrices
+              for (n in 1:tran@n.subpops) {
+                here <- which(tran@subpop.class.label==n,arr.ind=TRUE)
+                state[here,] <- tran.matrix[here,]%*%state[here,]
+              }
+
+              #add in the births to 1,1 for now, assuming that is correct.
+              #might go back on this later.
+              state[!duplicated(tran@subpop.class.label),1] <-  state[!duplicated(tran@subpop.class.label),1] +
+                tran@birth.rate #A BIT OF A HACK
+
+              #crude way of handling introductions and emigrations
+              state[tran@i.inds,1] <- state[tran@i.inds,1] + tran@introduction.rate
+
+            } else {
+
+              #mortality probability in each category of the n.age.class * no classes
+              mort <- 1-rep(tran@survival.rate, each=state@n.epi.class)
+
+
+              #loop over and distribute via a multinomial
+              newstate <- rep(0,1+length(tran.matrix[,1]))
+
+              for (n in 1:tran@n.subpops) {
+
+                here <- which(tran@subpop.class.label==n,arr.ind=TRUE)
+                here.next <- c(here,length(newstate))
+
+
+                #  print(here)
+
+                for (k in 1:length(tran.matrix[1,])) {
+
+                  #print("living, then dying")
+                  #print(sum(tran.matrix[here,k]))
+                  #print(mort[((n-1)*tran@n.age.class)+k])
+
+                  newstate[here.next] <- newstate[here.next] +
+                    rmultinom(1,state[here[k],1],c(tran.matrix[here,k],mort[((n-1)*tran@n.age.class)+k]))
+                }
+              }
+
+              #print("prop dead")
+              #print(newstate[length(newstate)]/sum(newstate))
+
+              state[,1] <- newstate[1:length(tran.matrix[,1])]
+
+              #print(unique(state[,1]))
+
+              #print("before births")
+              #print(range(c(state@.Data)))
+
+              #add in the births to 1,1 for now, assuming that is correct.
+              state[!duplicated(tran@subpop.class.label),1] <-  state[!duplicated(tran@subpop.class.label),1] +
+                rpois(tran@n.subpops,tran@birth.rate)
+
+
+              #print("after births")
+              #print(range(c(state@.Data)))
+
+              #print(unique(tran@introduction.rate))
+
+
+              #the stoch dist introduced above for efficiency
+              state[tran@i.inds,1] <- state[tran@i.inds,1] + tran@introduction.rate
+
+
+
+            }
+
+
+            return(state)
+          })
+
+
+
+

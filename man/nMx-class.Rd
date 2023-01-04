@@ -12,6 +12,8 @@ we need to do the transition (i.e., the matrix)
 \section{Slots}{
 
 \describe{
+\item{\code{rate.years}}{numeric.}
+
 \item{\code{rates}}{data.frame.}
 
 \item{\code{mid.age}}{numeric.}

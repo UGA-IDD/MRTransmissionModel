@@ -7,9 +7,9 @@
 create.surv.prob.over.age(
   age.classes,
   generation.time,
-  check = F,
   nMx = NULL,
-  year = 1990
+  year = 1990,
+  check = F
 )
 }
 \arguments{
@@ -17,14 +17,14 @@ create.surv.prob.over.age(
 
 \item{generation.time}{generation time}
 
-\item{check}{xxx}
-
 \item{nMx}{object of age specific death rates over time and mid-age per rate}
 
 \item{year}{year to pull age specific death rates that will be used to run out the transients (should coincide with DFE year)}
+
+\item{check}{logical;}
 }
 \value{
-returns the age profile of survivorship in units of the generation time
+the age profile of survivorship in units of the generation time
 }
 \description{
 Function to pull in Age Specific Death Rates and return survivorship for running out transients

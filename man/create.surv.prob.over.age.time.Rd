@@ -19,12 +19,12 @@ create.surv.prob.over.age.time(
 
 \item{nMx}{object of age specific death rates over time and mid-age per rate}
 
-\item{nMx.years}{year to start pulling age specific death rates}
+\item{nMx.years}{years to interpolate age specific death rates}
 
-\item{check}{xxx}
+\item{check}{logical;}
 }
 \value{
-the age profile of survivorship in units of the generation time
+returns the age profile (rows) of survivorship (in units of the generation time) by time (cols) as a matrix
 }
 \description{
 Function to pull Age Specific Death Rates and return survivorship over time

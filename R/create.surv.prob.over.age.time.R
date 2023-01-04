@@ -3,22 +3,19 @@
 #' @param age.classes a set of age classes for which tran is being built
 #' @param generation.time generation time
 #' @param nMx object of age specific death rates over time and mid-age per rate
-#' @param nMx.years  year to start pulling age specific death rates
-#' @param check xxx
+#' @param nMx.years years to interpolate age specific death rates
+#' @param check logical;
 #'
-#' @importFrom stats smooth.spline predict
-#' @importFrom graphics points
-#'
-#' @return the age profile of survivorship in units of the generation time
+#' @return returns the age profile (rows) of survivorship (in units of the generation time) by time (cols) as a matrix
 #' @export
-
+#'
 create.surv.prob.over.age.time <- function(age.classes, generation.time, nMx=NULL, nMx.years, check=F){
 
   mid.age <- nMx@mid.age
   generation.time.year <- generation.time/12   # put generation.time in terms of years rather than months (0.5 in months) now (0.041667 in years)
   no.gens.in.year <- 12*1/generation.time
 
-  rate.years <- seq(1950,2100,5)
+  rate.years <- nMx@rate.years #seq(1950,2100,5) #xxamy - revised what feeds into rate.years here
   indexes <- findInterval(nMx.years, rate.years)
   rates.years <- data.frame(nMx@rates[,indexes])
   rates.generations <- rates.years[,rep(seq_len(ncol(rates.years)), each=no.gens.in.year)]
