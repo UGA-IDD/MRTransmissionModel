@@ -1,6 +1,5 @@
 ## practice file for you to try and run a spatial experiment once all the code is updated.
 
-
 ## Example spatial experiment run
 ## December 6, 2022
 
