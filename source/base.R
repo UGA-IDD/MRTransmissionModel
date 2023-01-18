@@ -58,8 +58,8 @@ setClass("ID.transition.SIR",
                         n.age.class = "numeric", #the number of age classes
                         age.class = "numeric",#the actual age classes defined by upper age in class
                         aging.rate = "numeric", #percent that age out of each age class at each time step
-                        survival.rate = "numeric", #the percent who survive in this age class at each time step
-                        birth.rate = "numeric", #the birth rate for this transition
+                        survival.rate = "ANY", #the percent who survive in this age class at each time step
+                        birth.rate = "ANY", #the birth rate for this transition
                         waifw = "matrix", #who acquires infection from whom matrix
                         age.surv.matrix = "matrix", #matrix governing age/survival
                         introduction.rate = "numeric", #an vector of possibly 0 case importation rates in each age class
@@ -518,7 +518,7 @@ setClass("experiment",
                         step.size = "numeric", #the step size in years, 1/no.gens.per.year
                         trans = "ID.transition.SIR", #defines the transitions for this experiment
                         season.obj = "seasonal.force", #seasonal forcing function
-                        births.per.1000.each.timestep = "numeric", #the estimated crude birth rate per time step, length is T
+                        births.per.1000.each.timestep = "ANY", #the estimated crude birth rate per time step, length is T
                         description = "character" #describe the experiment
          ))
 
@@ -535,25 +535,25 @@ setClass("experiment.SIAtrigger",
 setClass("experiment.updatedemog",
          representation(trans = "ID.transition.SIR.vac", #the transitions for this experiment - xxamy added this
                         surv.each.timestep = "matrix", #the estimated age-specific survival rates over the length of the experiment, ncol is T
-                        pop.rescale.each.timestep = "numeric", #a vector of 0's if not call for population rescale, if !=0 then rescale by this pop number
+                        pop.rescale.each.timestep = "ANY", #a vector of NA's if not call for population rescale, if !=0 then rescale by this pop number
                         maternal.obj = "maternal.exp.decay"),  #maternal antibody object
          contains=c("experiment")) 
 
 #Class for an experiment with changing vaccination coverage over time
 setClass("experiment.updatedemog.vaccinationchange",
-         representation(time.specific.MR1cov = "vector", #vector of values of the coverage values
-                        time.specific.MR2cov = "vector", #vector of values of the coverage values
-                        time.specific.SIAcov = "vector", #vector of values of the coverage values
-                        time.specific.min.age.MR1 = "vector",
-                        time.specific.max.age.MR1 = "vector",
-                        time.specific.min.age.MR2 = "vector",
-                        time.specific.max.age.MR2 = "vector",
-                        time.specific.min.age.SIA = "vector",
-                        time.specific.max.age.SIA = "vector",
+         representation(time.specific.MR1cov = "ANY", #vector of values of the coverage values
+                        time.specific.MR2cov = "ANY", #vector of values of the coverage values
+                        time.specific.SIAcov = "ANY", #vector of values of the coverage values
+                        time.specific.min.age.MR1 = "ANY",
+                        time.specific.max.age.MR1 = "ANY",
+                        time.specific.min.age.MR2 = "ANY",
+                        time.specific.max.age.MR2 = "ANY",
+                        time.specific.min.age.SIA = "ANY",
+                        time.specific.max.age.SIA = "ANY",
                         obj.vcdf.MR1 = "vaccine.cdf.byage",
                         obj.vcdf.MR2 = "vaccine.cdf.byage",
                         obj.prob.vsucc = "prob.vsucc.byage",
-                        sia.timing.in.year = "vector"), #time of the SIA in years (e.g., 0.5 is July of the year)
+                        sia.timing.in.year = "ANY"), #time of the SIA in years (e.g., 0.5 is July of the year)
          contains=c("experiment.updatedemog"))
 
 #Class for an experiment 
@@ -563,7 +563,7 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations",
                         MR2SIAcorrelation = "logical", 
                         SIAinefficient = "logical",
                         SIAinacc = "logical",
-                        prop.inacc = "numeric"),
+                        prop.inacc = "ANY"),
          contains=c("experiment.updatedemog.vaccinationchange"))
 
 #### Running the Experiment (run methods) ####
@@ -793,7 +793,7 @@ setMethod("run",
               if (!is.na(index.sia.vacc[t])){ #if SIA
                 tmp.trans@vac.per@pvacc.in.age.class <- 
                   routine.vacc.prob[index.routine.vacc[t],] + 
-                  sia.vacc.prob[index.sia.vacc[t],] + 
+                  sia.vacc.prob[index.sia.vacc[t],] - 
                   (routine.vacc.prob[index.routine.vacc[t],]*sia.vacc.prob[index.sia.vacc[t],]) 
                 #stow output
                 MR1.fail.each.timestep[t] <- routine$prop.fail.MR1[index.routine.vacc[t]]
@@ -967,7 +967,7 @@ setMethod("run",
                 if (!exper@MR1SIAcorrelation & !exper@MR2SIAcorrelation & !exper@SIAinacc & !exper@SIAinefficient){ 
                   tmp.trans@vac.per@pvacc.in.age.class <- 
                     routine.vacc.prob[index.routine.vacc[t],] + 
-                    sia.vacc.prob[index.sia.vacc[t],] + 
+                    sia.vacc.prob[index.sia.vacc[t],] -
                     (routine.vacc.prob[index.routine.vacc[t],]*sia.vacc.prob[index.sia.vacc[t],]) 
                 }
                 
@@ -1301,16 +1301,16 @@ setClass("sim.results.MSIRV",
 
 # Holds the results of a simulation with an experiment.updatedemog object
 setClass("sim.results.MSIRV.update.demog",
-         representation(births.each.timestep = "numeric", #the number of births per time step as output from simulation
-                        growth.rate.each.timestep = "numeric"
+         representation(births.each.timestep = "ANY", #the number of births per time step as output from simulation
+                        growth.rate.each.timestep = "ANY"
          ),
          contains="sim.results.MSIRV")
 
 # Hols the results output for a simulation with an experiment.updatedemog.vaccinationchange object
 setClass("sim.results.MSIRV.update.demog.vaccine.change",
-         representation(MR1.fail.each.timestep = "numeric", #the number of births per time step as output from simulation
-                        MR2.fail.each.timestep = "numeric",
-                        SIA.fail.each.timestep = "numeric"
+         representation(MR1.fail.each.timestep = "ANY", #the number of births per time step as output from simulation
+                        MR2.fail.each.timestep = "ANY",
+                        SIA.fail.each.timestep = "ANY"
          ),
          contains="sim.results.MSIRV.update.demog")
 

@@ -295,6 +295,7 @@ getDemography.wpp2019 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   asdr.1950.2100.by5 <- cbind(asdr.1950.2100.by5, "2100-2105" = asdr.1950.2100.by5[,ncol(asdr.1950.2100.by5)]) #revised to 2105 xxamy
   asdr.maxage <- 5*(length((mxF[mxF$country_code==uncode,3]))-2)
   asdr.object <- new("nMx",
+                     rate.years = seq(1950, 2095, 5),
                      rates = asdr.1950.2100.by5,
                      mid.age = c(0.5, seq(2.5, (asdr.maxage+2.5), 5)))
   

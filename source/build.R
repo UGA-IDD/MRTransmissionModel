@@ -873,7 +873,8 @@ setMethod("get.seasonal.mult",
 #ID.state.matrix from one time step to another, and contains all the fun stuff
 #we need to do the transition (i.e., the matrix)
 setClass("nMx",
-         representation(rates="data.frame", #age specific death rates per 1 from 1950 to 2100 by 5 year increments
+         representation(rate.years="numeric", #year associated with each time-specific rates
+                        rates="data.frame", #age specific death rates per 1 from 1950 to 2100 by 5 year increments
                         mid.age="numeric" #mid-age associated with rates,
          ))
 
@@ -889,7 +890,7 @@ setClass("nMx",
 #   returns the age profile of survivorship in units of the generation time
 create.surv.prob.over.age <- function(age.classes, generation.time, check=F, nMx=NULL, year=1990){
   
-  rate.years <- seq(1950,2100,5)
+  rate.years <- nMx@rate.years #seq(1950,2100,5) 
   index <- min(which(findInterval(rate.years, year)==1))
   rates.overtime <- nMx@rates
   mid.age <- nMx@mid.age
@@ -1185,7 +1186,7 @@ create.surv.prob.over.age.time <- function(age.classes, generation.time, nMx=NUL
   generation.time.year <- generation.time/12   # put generation.time in terms of years rather than months (0.5 in months) now (0.041667 in years)
   no.gens.in.year <- 12*1/generation.time
   
-  rate.years <- seq(1950,2100,5)
+  rate.years <- nMx@rate.years #seq(1950,2100,5)
   indexes <- findInterval(nMx.years, rate.years)
   rates.years <- data.frame(nMx@rates[,indexes])
   rates.generations <- rates.years[,rep(seq_len(ncol(rates.years)), each=no.gens.in.year)]
@@ -1384,6 +1385,7 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101), if.missing.us
   asdr.1950.2100.by5 <- cbind(asdr.1950.2100.by5, "2100-2105" = asdr.1950.2100.by5[,ncol(asdr.1950.2100.by5)]) #revised to 2105 xxamy
   asdr.maxage <- 5*(length((mxF[mxF$country_code==cc,3]))-2)
   asdr.object <- new("nMx",
+                     rate.years = seq(1950, 2095, 5),
                      rates = asdr.1950.2100.by5,
                      mid.age = c(0.5, seq(2.5, (asdr.maxage+2.5), 5)))
   

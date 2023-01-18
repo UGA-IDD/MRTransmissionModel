@@ -14,6 +14,8 @@ dyn.load("./source/MRModel-funcs.so") #run "R CMD SHLIB source/MRModel-funcs.c" 
 source("./source/build.R")
 source("./source/base.R")
 source("./source/user_interface.R")
+source("./source/new_functions.R")
+source("./source/new_functions.R")
 
 ###################### Example UN & WHO data experiment run ########################
 #detach("package:wpp2017", unload=TRUE)

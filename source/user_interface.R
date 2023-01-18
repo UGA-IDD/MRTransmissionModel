@@ -119,6 +119,9 @@ EX.Country.part1 <- function(uncode,
   # Get rid of negatives
   EX@state.t0[which(EX@state.t0[,1]<0),1] <- 0
   
+  # No rescaling of population
+  EX@pop.rescale.each.timestep <- 0
+  
   # Run out transients - plot if you want to be sure...
   res <- run(EX, rescale.WAIFW=T) 
   #plot(res@result)
