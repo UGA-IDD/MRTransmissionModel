@@ -1,0 +1,89 @@
+Package: MRTransmissionModel
+Title: Fit Disease Transmission Models
+Version: 1.0.0
+Authors@R: c(person("Lauren", "Hoskovec", role = c("aut", "cre"), email = "lhoskovec@west-inc.com"),
+       person("Amy","Winter",role=c("aut"), email = "awinter@uga.edu"))
+Author: Lauren Hoskovec [aut, cre],
+ Amy Winter [aut]
+Description: Fits matrix population VSIR models. 
+License: GPL (>= 2)
+Imports: methods, zoo, KernSmooth, readxl
+Encoding: UTF-8
+NeedsCompilation: yes
+ByteCompile: yes
+LazyData: true
+Depends: R(>= 3.5.0), countrycode, wpp2017, wpp2019, dplyr, survival
+Collate: 
+    'setClasses.R'
+    'EX.Country.part1.R'
+    'EX.Country.part2.R'
+    'ExtractAgeSpecificSurvivalMatrix.R'
+    'Get.CountryX.Starting.Pop.MSIRV.R'
+    'GetNumber.per.AgeGroup.R'
+    'GetNumber.per.AgeYear.R'
+    'GetProp.per.Year.R'
+    'GetRubellaCases.per.Year.R'
+    'GetRubellaSeroprevalence.per.Year.R'
+    'GetSumInYear.R'
+    'SIRIDTran.R'
+    'Space.Get.CountryX.Starting.Pop.MSIRV.R'
+    'Spatial.EX.Country.part1.R'
+    'Spatial.EX.Country.part2.R'
+    'convertAgeSIA.R'
+    'create.ID.state.matrix.R'
+    'create.ID.transition.MSIRV.R'
+    'create.ID.transition.MSIRV.SIA.R'
+    'create.ID.transition.SIR.R'
+    'create.ID.transition.SIR.vac.R'
+    'create.ID.transition.SIR.vac.SIA.R'
+    'create.country.x.DFE.ID.state.matrix.R'
+    'create.surv.prob.over.age.R'
+    'create.surv.prob.over.age.time.R'
+    'data.R'
+    'fit.vsucc.Logistic.R'
+    'get.MR1cdf.survival.R'
+    'get.births.fun.R'
+    'get.boulianne.vsucc.R'
+    'get.diagonal.WAIFW.R'
+    'get.flat.WAIFW.R'
+    'get.gans.vsucc.R'
+    'get.polymod.WAIFW.R'
+    'get.prem.WAIFW.R'
+    'get.routine.time.age.specific.R'
+    'get.seasonal.mult.R'
+    'get.sia.time.age.specific.R'
+    'get.smooth.WAIFW.R'
+    'get.vcdf.normal.R'
+    'get.vcdf.uniform.R'
+    'get.vynnycky.WAIFW.R'
+    'getAverageInfectionAge.R'
+    'getCRScases.byage.per.stochastic.rate.R'
+    'getCompartmentTotals.R'
+    'getCumRiskTrimester.R'
+    'getDemography.wpp2017.R'
+    'getDemography.wpp2019.R'
+    'getOutput_201910gavi_v4.R'
+    'getWHO.measles.SIAs.R'
+    'getWHO.rubella.SIAs.R'
+    'globals.R'
+    'next.ID.state.R'
+    'plot.sim.results.MSIRV.R'
+    'plot.sim.results.MSIRV.space.R'
+    'plot.sim.results.SIR.R'
+    'pmaternal.R'
+    'pvacsuccess.R'
+    'run.R'
+    'scaleWAIFW.R'
+    'scaleWAIFW.space.R'
+    'setupCountry.Dec2021.R'
+    'space.create.ID.state.matrix.R'
+    'space.create.ID.transition.MSIRV.R'
+    'space.create.country.x.DFE.ID.state.matrix.R'
+    'space.getDemography.R'
+    'space.wrapper.GetNumber.per.AgeGroup.R'
+    'space.wrapper.get.routine.time.age.specific.R'
+    'space.wrapper.get.sia.time.age.specific.R'
+    'space.wrapper.surv.prob.over.age.R'
+    'space.wrapper.surv.prob.over.age.time.R'
+    'toProportions.R'
+RoxygenNote: 7.1.2
