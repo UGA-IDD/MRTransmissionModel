@@ -14,7 +14,7 @@ convertAgeSIA <- function(sia.age.range){
   age.upper <- rep(NA,length(sia.age.range))
   age.upper.unit <- rep(NA,length(sia.age.range))
 
-  sia.age.range[sia.age.range=="unknown"] <- "9-59 M"               # assume the unkowns are the usual 9mo-5yrs
+  sia.age.range[sia.age.range=="unknown"] <- "9-59 M" # assume the unknowns are the usual 9mo-5yrs
   sia.age.range[sia.age.range=="Children at elementary"] <- "5-11 Y"
   sia.age.range[sia.age.range=="School-age"] <- "5-11 Y"
   sia.age.range[sia.age.range=="eligible children"] <- "9-59 M"
