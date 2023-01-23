@@ -2,7 +2,7 @@
 #'
 #' @param sia.age.range input as AgeGroup from the WHO SIA Data
 #'
-#' @return Returns age range (in months)
+#' @return Returns age range in months
 #'
 #' @export
 #'
