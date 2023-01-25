@@ -10,7 +10,7 @@ convertAgeSIA(sia.age.range)
 \item{sia.age.range}{input as AgeGroup from the WHO SIA Data}
 }
 \value{
-Returns age range
+Returns age range in months
 }
 \description{
 Function to convert the SIA age range into something usable

@@ -19,8 +19,10 @@ create.ID.transition.SIR.vac(
   exponent = 1,
   frequency.dep = F,
   is.stochastic = F,
-  get.births = function(pop, tran) {     return(c(tran@birth.rate, rep(0, length(pop) -
-    1))) }
+  get.births = function(pop, tran) {
+     return(c(tran@birth.rate, rep(0, length(pop) -
+    1)))
+ }
 )
 }
 \arguments{

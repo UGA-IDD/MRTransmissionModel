@@ -21,8 +21,10 @@ space.create.ID.transition.MSIRV(
   exponent = exponent,
   frequency.dep = F,
   is.stochastic = F,
-  get.births = function(pop, tran) {     return(c(tran@birth.rate, rep(0, length(pop) -
-    1))) },
+  get.births = function(pop, tran) {
+     return(c(tran@birth.rate, rep(0, length(pop) -
+    1)))
+ },
   n.subpops = 1,
   subpop.class.label,
   coupling = 1
