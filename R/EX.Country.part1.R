@@ -23,7 +23,7 @@
 #' @param use_montagu_demog logical; T = use montagu demography or F = use UNPD demography
 #' @param routine.vac xxx
 #' @param routine.vac.age.index xxx
-#' @param demog_data optional demography data for use if demog_data = NULL
+#' @param demog_data optional demography data for use if use_montagu_demog==T
 #'
 #' @include setClasses.R
 #' @importFrom methods new

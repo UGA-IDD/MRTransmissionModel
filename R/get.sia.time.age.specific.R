@@ -23,8 +23,10 @@ get.sia.time.age.specific <- function(age.classes=c(1:240, seq(252,1212,12)),
   for (j in 1:length(time.specific.SIAcov)){
     if (time.specific.SIAcov[j]!=0){
       prob.success.SIA <- obj.prob.vsucc@prob.vsucc[obj.prob.vsucc@ages %in% c(age.min.sia[j]:age.max.sia[j])]
-      vacc.SIA <- rep(time.specific.SIAcov[j], length(age.min.sia[j]:age.max.sia[j]))
-      age.time.specific.SIA[j,(age.min.sia[j]:age.max.sia[j])] <- vacc.SIA*prob.success.SIA
+      age.min.index <- which(age.classes==age.min.sia[j])
+      age.max.index <-  which(age.classes==age.max.sia[j])
+      vacc.SIA <- rep(time.specific.SIAcov[j], length(age.min.index:age.max.index))
+      age.time.specific.SIA[j,(age.min.index:age.max.index)] <- vacc.SIA*prob.success.SIA
       prop.fail.SIA[j] <- (vacc.SIA*(1-prob.success.SIA))[1]
     }
   }

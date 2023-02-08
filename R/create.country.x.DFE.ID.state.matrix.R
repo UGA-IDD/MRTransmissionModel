@@ -25,15 +25,25 @@ create.country.x.DFE.ID.state.matrix <- function(uncode, tot.pop=NULL, tran,
 
   if (use_montagu_demog){
     demog <- demog_data
+
+    pop.struct <- demog$pop.age.byageclasses.1950.2100[,(year-1950+1)]
+    age <- as.numeric(rownames(demog$pop.age.byageclasses.1950.2100))
+    if (is.null(tot.pop)) {
+      tot.pop <- demog$pop.total.1950.2100[(year-1950+1)]
+    }
+
   }else{
     demog <- getDemography.wpp2019(uncode=uncode)
-  }
-  pop.struct <- demog$pop.age.byageclasses.1950.2100[,(year-1950+1)]*1000
-  age <- as.numeric(rownames(demog$pop.age.byageclasses.1950.2100))
 
-  if (is.null(tot.pop)) {
-    tot.pop <- demog$pop.total.1950.2100[(year-1950+1)]*1000
+    #wpp2019 data is population/1000 so we need to multiply to get true population
+    pop.struct <- demog$pop.age.byageclasses.1950.2100[,(year-1950+1)]*1000
+    age <- as.numeric(rownames(demog$pop.age.byageclasses.1950.2100))
+    if (is.null(tot.pop)) {
+      tot.pop <- demog$pop.total.1950.2100[(year-1950+1)]*1000
+    }
+
   }
+
 
   #Turn this into prop of desired age classes
   #note that NUMBER is imposed externally (since we might not want full countries... because interested in stochasticity)

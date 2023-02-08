@@ -78,7 +78,7 @@ EX.Country.part1(
 
 \item{routine.vac.age.index}{xxx}
 
-\item{demog_data}{optional demography data for use if demog_data = NULL}
+\item{demog_data}{optional demography data for use if use_montagu_demog==T}
 }
 \value{
 experiment result
