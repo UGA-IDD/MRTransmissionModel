@@ -4,10 +4,10 @@
 \alias{space.getDemography}
 \title{Function to get spatial demography - this function is temporary and will need to be totally revamped}
 \usage{
-space.getDemography(uncode)
+space.getDemography(iso3code)
 }
 \arguments{
-\item{uncode}{UN country code}
+\item{iso3code}{ISO3 country code}
 }
 \value{
 list, demographic data

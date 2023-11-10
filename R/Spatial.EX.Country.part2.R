@@ -51,16 +51,21 @@ Spatial.EX.Country.part2 <- function(uncode,
                                      time.specific.MR1cov,
                                      time.specific.MR2cov,
                                      time.specific.SIAcov,
+                                     time.specific.schoolvacc.cov=NULL,
                                      time.specific.min.age.MR1,
                                      time.specific.max.age.MR1,
                                      time.specific.min.age.MR2,
                                      time.specific.max.age.MR2,
                                      time.specific.min.age.SIA,
                                      time.specific.max.age.SIA,
+                                     time.specific.min.age.schoolvacc,
+                                     time.specific.max.age.schoolvacc,
                                      obj.vcdf.MR1 = get.vcdf.normal(6, 12),
                                      obj.vcdf.MR2 = get.vcdf.normal(15, 21),
+                                     list.obj.vcdf.schoolvacc,
                                      obj.prob.vsucc = pvacsuccess(1:(20*12), get.boulianne.vsucc()),
                                      sia.timing.in.year = (3/12),
+                                     schoolvacc.timing.in.year = (9/12),
                                      MR1MR2correlation = NULL,
                                      MR1SIAcorrelation = NULL,
                                      MR2SIAcorrelation = NULL,
@@ -72,6 +77,7 @@ Spatial.EX.Country.part2 <- function(uncode,
   ## Changing experiment type
   if (is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange.spatial") #default
   if (!is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial")
+  if (!is.null(time.specific.schoolvacc.cov)) EX <- new("experiment.updatedemog.vaccinationchange.school.spatial")
 
   ## Country name
   name <- countrycode::countrycode(uncode, origin="un", destination="country.name")
@@ -137,6 +143,13 @@ Spatial.EX.Country.part2 <- function(uncode,
     EX@prop.inacc <- c(rep(prop.inacc, each=no.gens.in.year),  prop.inacc[length(prop.inacc)]) #by time step
     #EX@prop.inacc = prop.inacc #by year
     EX@SIAinefficient = SIAinefficient
+  }
+  if (!is.null(time.specific.schoolvacc.cov)) {
+    EX@time.specific.schoolvacc.cov =  time.specific.schoolvacc.cov #matrix annual coverage values by space (rows) and years 1980-2100 (cols)
+    EX@time.specific.min.age.schoolvacc = time.specific.min.age.schoolvacc
+    EX@time.specific.max.age.schoolvacc = time.specific.max.age.schoolvacc
+    EX@list.obj.vcdf.schoolvacc <- list.obj.vcdf.schoolvacc
+    EX@schoolvacc.timing.in.year <- schoolvacc.timing.in.year
   }
 
   return(run(EX, rescale.WAIFW=rescale.WAIFW))
