@@ -3,12 +3,9 @@
 \docType{class}
 \name{sim.results.MSIRV.update.demog.vaccine.change.space-class}
 \alias{sim.results.MSIRV.update.demog.vaccine.change.space-class}
-\alias{sim.results.MSIRV.update.demog.vaccine.change.space.school-class}
 \title{Holds the results output for a simulation with an experiment.updatedemog.vaccinationchange object}
 \description{
 Holds the results output for a simulation with an experiment.updatedemog.vaccinationchange object
-
-Holds the results output for a simulation with an experiment.updatedemog.vaccinationchange.spatial.schoolvaccination object
 }
 \section{Slots}{
 
@@ -18,7 +15,5 @@ Holds the results output for a simulation with an experiment.updatedemog.vaccina
 \item{\code{MR2.fail.each.timestep}}{ANY.}
 
 \item{\code{SIA.fail.each.timestep}}{ANY.}
-
-\item{\code{schoolvacc.fail.each.timestep}}{ANY.}
 }}
 

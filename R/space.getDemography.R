@@ -1,11 +1,11 @@
 #' Function to get spatial demography - this function is temporary and will need to be totally revamped
 #'
-#' @param iso3code ISO3 country code
+#' @param uncode UN country code
 #'
 #' @return list, demographic data
 #' @export
 #'
-space.getDemography <- function(iso3code){
+space.getDemography <- function(uncode){
 
   # library(logspline)
   # setOldClass("oldlogspline")
