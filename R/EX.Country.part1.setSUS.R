@@ -24,6 +24,9 @@
 #' @param routine.vac xxx
 #' @param routine.vac.age.index xxx
 #' @param demog_data optional demography data for use if use_montagu_demog==T
+#' @param starting.prop.immune vector - starting proportion immune associated with starting.prop.immune.ages.in.months
+#' @param starting.prop.immune.ages.in.months vector - the ages (in months) associated with starting.prop.immune
+#'
 #'
 #' @include setClasses.R
 #' @importFrom methods new
@@ -31,7 +34,7 @@
 #' @return experiment result
 #' @export
 
-EX.Country.part1 <- function(uncode,
+EX.Country.part1.setSUS <- function(uncode,
                              generation.time = 0.5, #generation time in months
                              age.classes = c(1:240, seq(241,720,12)),
                              maternal.decay.rt=0.95, #based on Metcalf, 2012 paper
@@ -54,7 +57,9 @@ EX.Country.part1 <- function(uncode,
                              use_montagu_demog=FALSE,
                              routine.vac=0,
                              routine.vac.age.index=12,
-                             demog_data = NULL) {
+                             demog_data = NULL,
+                             starting.prop.immune = c(0.75, 0.75, 0.75, 0.75),
+                             starting.prop.immune.ages.in.months = c(9, 12, 24, 240)) {
 
   # build.R
   tmp <- Get.CountryX.Starting.Pop.MSIRV(uncode=uncode,
@@ -134,44 +139,34 @@ EX.Country.part1 <- function(uncode,
   # No rescaling of population -
   EX@pop.rescale.each.timestep <- 0 #--xxamy - added this lines because when changed pop.rescale.each.timestep to "ANY" is became NULL by default but we need it to be a 0
 
-  # Run out transients - plot if you want to be sure...
+  # Run out transients, basically just to reset the WAIFW and to get <6mo sus profile - plot if you want to be sure...
   res <- run(EX, rescale.WAIFW=T)
   #plot(res@result)
 
-  # Reset
-
-  # function "GetNumber.per.AgeGroup()" in build.R
-  age.struct.1991 <- GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
-  age.struc.sim <- GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
-  prop.struc.sim <- res@result[,ncol(res@result)]/rep(age.struc.sim, each=5)
-  new.state <- rep(age.struct.1991, each=5)*prop.struc.sim
-  EX@state.t0[,1] <- new.state
-  #EX@state.t0[,1] <- sum(res@result[,1])*res@result[,ncol(res@result)]/sum(res@result[,ncol(res@result)])
+  #replacing waifw with scaled waifw
   EX@trans@waifw <- res@experiment.def@trans@waifw
 
-  res <- run(EX, rescale.WAIFW=T)
-  #plot(res@result)
+  # Fix the starting susceptible population
+  #reset based on tmax
+  age.struct.t0 <- GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.tmax <- GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
+  prop.struc.sim <- res@result[,ncol(res@result)]/rep(age.struc.tmax, each=5)
+  new.state <- rep(age.struct.t0, each=5)*prop.struc.sim
+  #determine which age indexes match the argument starting.prop.sus.ages.in.months
+  indexes <- which(findInterval(age.classes, starting.prop.immune.ages.in.months[1])==1 &
+                     findInterval(age.classes, starting.prop.immune.ages.in.months[length(starting.prop.immune.ages.in.months)])==0)
+  #interpolate ages based on age.classes
+  f <- smooth.spline(starting.prop.immune.ages.in.months, starting.prop.immune)
+  pred.prop.immune <- predict(f,age.classes[indexes])$y
+  pred.prop.immune <- sapply(pred.prop.immune, function(x) min(x, 0.98))
+  #replace age-specific profiles IF proportion susceptible given for that age group
+  new.state[EX@trans@r.inds[indexes]] <- age.struct.t0[indexes]*pred.prop.immune
+  new.state[EX@trans@s.inds[indexes]] <- age.struct.t0[indexes]*(1-pred.prop.immune)
+  new.state[EX@trans@m.inds[indexes]] <- 0
+  new.state[EX@trans@i.inds[indexes]] <- 0
+  new.state[EX@trans@v.inds[indexes]] <- 0
 
-  # Reset
-  age.struct.1991 <- GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
-  age.struc.sim <- GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
-  prop.struc.sim <- res@result[,ncol(res@result)]/rep(age.struc.sim, each=5)
-  new.state <- rep(age.struct.1991, each=5)*prop.struc.sim
   EX@state.t0[,1] <- new.state
-  #EX@state.t0[,1] <- sum(res@result[,1])*res@result[,ncol(res@result)]/sum(res@result[,ncol(res@result)])
-  EX@trans@waifw <- res@experiment.def@trans@waifw
-
-  res <- run(EX, rescale.WAIFW=T)
-  #plot(res@result)
-
-  # Reset
-  age.struct.1991 <- GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
-  age.struc.sim <- GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
-  prop.struc.sim <- res@result[,ncol(res@result)]/rep(age.struc.sim, each=5)
-  new.state <- rep(age.struct.1991, each=5)*prop.struc.sim
-  EX@state.t0[,1] <- new.state
-  #EX@state.t0[,1] <- sum(res@result[,1])*res@result[,ncol(res@result)]/sum(res@result[,ncol(res@result)])
-  EX@trans@waifw <- res@experiment.def@trans@waifw
 
   return(EX)
 }

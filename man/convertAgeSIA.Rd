@@ -2,16 +2,18 @@
 % Please edit documentation in R/convertAgeSIA.R
 \name{convertAgeSIA}
 \alias{convertAgeSIA}
-\title{Function to convert the SIA age range into something usable}
+\title{Function to convert WHOs SIA age range, as text, into something usable}
 \usage{
-convertAgeSIA(sia.age.range)
+convertAgeSIA(sia.age.range, check = FALSE)
 }
 \arguments{
 \item{sia.age.range}{input as AgeGroup from the WHO SIA Data}
+
+\item{check}{boolean of whether to print diagnostics of the functions success, default is FALSE}
 }
 \value{
-Returns age range
+Returns age range in months
 }
 \description{
-Function to convert the SIA age range into something usable
+Function to convert WHOs SIA age range, as text, into something usable
 }

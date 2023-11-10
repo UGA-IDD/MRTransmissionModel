@@ -30,10 +30,10 @@ EX.Country.part2(
   obj.vcdf.MR2 = get.vcdf.normal(15, 21),
   obj.prob.vsucc = pvacsuccess(1:(20 * 12), get.boulianne.vsucc()),
   sia.timing.in.year = (3/12),
-  MR1MR2correlation = NULL,
-  MR1SIAcorrelation = NULL,
-  MR2SIAcorrelation = NULL,
-  SIAinacc = NULL,
+  MR1MR2correlation = FALSE,
+  MR1SIAcorrelation = FALSE,
+  MR2SIAcorrelation = FALSE,
+  SIAinacc = FALSE,
   prop.inacc = NULL,
   SIAinefficient = NULL
 )
