@@ -64,18 +64,18 @@ EX.Country.part2 <- function(uncode,
                              obj.vcdf.MR2 = get.vcdf.normal(15, 21),
                              obj.prob.vsucc = pvacsuccess(1:(20*12), get.boulianne.vsucc()),
                              sia.timing.in.year = (3/12),
-                             MR1MR2correlation = NULL,
-                             MR1SIAcorrelation = NULL,
-                             MR2SIAcorrelation = NULL,
-                             SIAinacc = NULL,
+                             MR1MR2correlation = FALSE,
+                             MR1SIAcorrelation = FALSE,
+                             MR2SIAcorrelation = FALSE,
+                             SIAinacc = FALSE,
                              prop.inacc = NULL,
                              SIAinefficient = NULL){
 
 
   ## Changing experiment type
   # call to new returns a newly allocated object from the class identified by first argument
-  if (is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange") #default
-  if (!is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations")
+  if (!MR1MR2correlation) EX <- new("experiment.updatedemog.vaccinationchange") #default
+  if (MR1MR2correlation) EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations")
 
   ## Country name
   name <- countrycode::countrycode(uncode, origin="un", destination="country.name")
@@ -132,15 +132,15 @@ EX.Country.part2 <- function(uncode,
   EX@obj.vcdf.MR2 = obj.vcdf.MR2
   EX@obj.prob.vsucc = obj.prob.vsucc
   EX@sia.timing.in.year = sia.timing.in.year
-  if (!is.null(MR1MR2correlation)) {
-    EX@MR1MR2correlation = MR1MR2correlation
-    EX@MR1SIAcorrelation = MR1SIAcorrelation
-    EX@MR2SIAcorrelation = MR2SIAcorrelation
+  if (MR1MR2correlation) EX@MR1MR2correlation = MR1MR2correlation
+  if (MR1SIAcorrelation) EX@MR1SIAcorrelation = MR1SIAcorrelation
+  if (MR2SIAcorrelation) EX@MR2SIAcorrelation = MR2SIAcorrelation
+  if (SIAinefficient) EX@SIAinefficient = SIAinefficient
+  if (SIAinacc) {
     EX@SIAinacc = SIAinacc
     #Setting up population always inaccessible to vaccine
     EX@prop.inacc <- c(rep(prop.inacc, each=no.gens.in.year),  prop.inacc[length(prop.inacc)]) #by time step
     #EX@prop.inacc = prop.inacc #by year
-    EX@SIAinefficient = SIAinefficient
   }
 
   return(run(EX, rescale.WAIFW=rescale.WAIFW))

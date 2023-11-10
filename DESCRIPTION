@@ -16,6 +16,7 @@ Depends: R(>= 3.5.0), countrycode, wpp2017, wpp2019, dplyr, survival
 Collate: 
     'setClasses.R'
     'EX.Country.part1.R'
+    'EX.Country.part1.setSUS.R'
     'EX.Country.part2.R'
     'ExtractAgeSpecificSurvivalMatrix.R'
     'Get.CountryX.Starting.Pop.MSIRV.R'
@@ -62,8 +63,11 @@ Collate:
     'getCumRiskTrimester.R'
     'getDemography.wpp2017.R'
     'getDemography.wpp2019.R'
+    'getDemography.wpp2022.R'
     'getOutput_201910gavi_v4.R'
+    'getWHO.measles.SIAs.Nov2023.R'
     'getWHO.measles.SIAs.R'
+    'getWHO.rubella.SIAs.Nov2023.R'
     'getWHO.rubella.SIAs.R'
     'globals.R'
     'next.ID.state.R'
@@ -76,6 +80,7 @@ Collate:
     'scaleWAIFW.R'
     'scaleWAIFW.space.R'
     'setupCountry.Dec2021.R'
+    'setupCountry.Nov2023.R'
     'space.create.ID.state.matrix.R'
     'space.create.ID.transition.MSIRV.R'
     'space.create.country.x.DFE.ID.state.matrix.R'
@@ -86,4 +91,4 @@ Collate:
     'space.wrapper.surv.prob.over.age.R'
     'space.wrapper.surv.prob.over.age.time.R'
     'toProportions.R'
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
