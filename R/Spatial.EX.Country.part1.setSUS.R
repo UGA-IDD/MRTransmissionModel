@@ -25,6 +25,8 @@
 #' @param routine.vac.age.index xxx
 #' @param n.subpops number of subpopulations
 #' @param coupling matrix of connectivity between subpopulations
+#' @param starting.prop.immune vector - starting proportion immune, length is length(starting.prop.immune.ages.in.months)*n.subpops
+#' @param starting.prop.immune.ages.in.months vector - the ages (in months) associated with starting.prop.immune
 #'
 #' @return tran object and state.t0 after transients run out
 #' @export

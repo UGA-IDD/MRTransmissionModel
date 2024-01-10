@@ -3,13 +3,18 @@
 \docType{class}
 \name{experiment.updatedemog.vaccinationchange.spatial-class}
 \alias{experiment.updatedemog.vaccinationchange.spatial-class}
+\alias{experiment.updatedemog.vaccinationchange.school.spatial-class}
 \title{Class for a spatial experiment updating demography and with changing vaccination coverage over time}
 \description{
+Class for a spatial experiment updating demography and with changing vaccination coverage over time
+
 Class for a spatial experiment updating demography and with changing vaccination coverage over time
 }
 \section{Slots}{
 
 \describe{
+\item{\code{trans}}{ID.transition.MSIRV.space.}
+
 \item{\code{trans}}{ID.transition.MSIRV.space.}
 }}
 

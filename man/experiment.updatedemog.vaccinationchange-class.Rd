@@ -3,8 +3,11 @@
 \docType{class}
 \name{experiment.updatedemog.vaccinationchange-class}
 \alias{experiment.updatedemog.vaccinationchange-class}
+\alias{experiment.updatedemog.vaccinationchange.school-class}
 \title{Class for an experiment with changing vaccination coverage over time}
 \description{
+Class for an experiment with changing vaccination coverage over time
+
 Class for an experiment with changing vaccination coverage over time
 }
 \section{Slots}{
@@ -35,5 +38,17 @@ Class for an experiment with changing vaccination coverage over time
 \item{\code{obj.prob.vsucc}}{prob.vsucc.byage.}
 
 \item{\code{sia.timing.in.year}}{vector.}
+
+\item{\code{time.specific.schoolvacc.cov}}{vector.}
+
+\item{\code{time.specific.min.age.schoolvacc}}{vector.}
+
+\item{\code{time.specific.max.age.schoolvacc}}{vector.}
+
+\item{\code{obj.vcdf.schoolvacc}}{list of vaccine.cdf.byage objects}
+
+\item{\code{obj.prob.vsucc}}{prob.vsucc.byage.}
+
+\item{\code{schoolvacc.timing.in.year}}{vector.}
 }}
 

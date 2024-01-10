@@ -548,6 +548,41 @@ setClass("experiment.updatedemog.vaccinationchange.spatial",
          contains=c("experiment.updatedemog.vaccinationchange"))
 
 
+#' Class for an experiment with changing vaccination coverage over time
+#'
+#' @slot time.specific.schoolvacc.cov vector.
+#' @slot time.specific.min.age.schoolvacc vector.
+#' @slot time.specific.max.age.schoolvacc vector.
+#' @slot obj.vcdf.schoolvacc list of vaccine.cdf.byage objects
+#' @slot obj.prob.vsucc prob.vsucc.byage.
+#' @slot schoolvacc.timing.in.year vector.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange-class
+setClass("experiment.updatedemog.vaccinationchange.school",
+         slots = list(time.specific.schoolvacc.cov = "ANY",
+                      time.specific.min.age.schoolvacc = "ANY",
+                      time.specific.max.age.schoolvacc = "ANY",
+                      obj.vcdf.schoolvacc = "vaccine.cdf.byage",
+                      obj.prob.vsucc = "prob.vsucc.byage",
+                      schoolvacc.timing.in.year = "ANY"),
+         contains=c("experiment.updatedemog.vaccinationchange"))
+
+
+#' Class for a spatial experiment updating demography and with changing vaccination coverage over time
+#'
+#' @slot trans ID.transition.MSIRV.space.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange.spatial-class
+setClass("experiment.updatedemog.vaccinationchange.school.spatial",
+         slots = list(trans = "ID.transition.MSIRV.space",
+                      list.obj.vcdf.schoolvacc = "ANY"), #--xxamy changed to "ANY" because it is a list of vaccine.cdf.byage objects
+         contains=c("experiment.updatedemog.vaccinationchange.school"))
+
+
 #' Class for an experiment
 #'
 #' @slot MR1MR2correlation logical.
@@ -735,3 +770,15 @@ setClass("space.nMx",
                         n.subpops="numeric" #number of subpopulations
          ))
 
+
+#' Holds the results output for a simulation with an experiment.updatedemog.vaccinationchange.spatial.schoolvaccination object
+#'
+#' @slot schoolvacc.fail.each.timestep ANY.
+#'
+#' @export
+#' @docType class
+#' @rdname sim.results.MSIRV.update.demog.vaccine.change.space-class
+setClass("sim.results.MSIRV.update.demog.vaccine.change.space.school",
+         representation(schoolvacc.fail.each.timestep = "ANY" #the number of births per time step as output from simulation
+           ),
+         contains="sim.results.MSIRV.update.demog.vaccine.change.space")

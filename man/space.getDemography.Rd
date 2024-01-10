@@ -4,12 +4,14 @@
 \alias{space.getDemography}
 \title{Function to get spatial demography}
 \usage{
+  
 space.getDemography(age.classes, iso3code)
 }
 \arguments{
 \item{age.classes}{numeric - in months}
 
 \item{iso3code}{character}
+
 }
 \value{
 list, demographic data
