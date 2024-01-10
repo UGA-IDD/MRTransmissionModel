@@ -12,7 +12,7 @@ Encoding: UTF-8
 NeedsCompilation: yes
 ByteCompile: yes
 LazyData: true
-Depends: R(>= 3.5.0), countrycode, wpp2017, wpp2019, dplyr, survival
+Depends: R(>= 3.5.0), countrycode, wpp2017, wpp2019, dplyr, survival, tibble, tidyr, wpp2022
 Collate: 
     'setClasses.R'
     'EX.Country.part1.R'
@@ -29,6 +29,7 @@ Collate:
     'SIRIDTran.R'
     'Space.Get.CountryX.Starting.Pop.MSIRV.R'
     'Spatial.EX.Country.part1.R'
+    'Spatial.EX.Country.part1.setSUS.R'
     'Spatial.EX.Country.part2.R'
     'convertAgeSIA.R'
     'create.ID.state.matrix.R'
@@ -64,6 +65,7 @@ Collate:
     'getDemography.wpp2017.R'
     'getDemography.wpp2019.R'
     'getDemography.wpp2022.R'
+    'getDemography.wpp2022.mini.R'
     'getOutput_201910gavi_v4.R'
     'getWHO.measles.SIAs.Nov2023.R'
     'getWHO.measles.SIAs.R'

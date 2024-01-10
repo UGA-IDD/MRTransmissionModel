@@ -6,6 +6,7 @@
 \usage{
 Space.Get.CountryX.Starting.Pop.MSIRV(
   uncode,
+  iso3code,
   generation.time = 0.5,
   age.classes = c(1:240, seq(241, 720, 12)),
   maternal.decay.rt = 0.95,
@@ -28,6 +29,8 @@ Space.Get.CountryX.Starting.Pop.MSIRV(
 }
 \arguments{
 \item{uncode}{UN country code}
+
+\item{iso3code}{character iso3 code to matches uncode}
 
 \item{generation.time}{the desired generation time in months}
 

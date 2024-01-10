@@ -1,6 +1,6 @@
 #' Function to create a state matrix at the disease free equilibrium (DFE) from a transition object
 #'
-#' @param uncode numeric; UN country code
+#' @param iso3code character; iso3 code
 #' @param tot.subpop vector; sub-populations by which you can rescale if you want
 #' @param tran the transition object
 #' @param epi.class.label epi class label
@@ -12,7 +12,7 @@
 #' @export
 #'
 
-space.create.country.x.DFE.ID.state.matrix <- function(uncode, tot.subpop=NULL, tran,
+space.create.country.x.DFE.ID.state.matrix <- function(iso3code, tot.subpop=NULL, tran,
                                                        epi.class.label = c("M","S","I","R","V"),
                                                        year=1990){
 
@@ -23,14 +23,14 @@ space.create.country.x.DFE.ID.state.matrix <- function(uncode, tot.subpop=NULL, 
                                      tran@n.subpops)
 
   #fill in the template
-  demog <- space.getDemography(uncode=uncode)
+  demog <- space.getDemography(tran@age.class, iso3code=iso3code)
   demog.n.ages <- nrow(demog$pop.age.byageclasses.1950.2100)/tran@n.subpops
 
   #loop through the number of sub-populations
   for (s in 1:tran@n.subpops){
 
     pop.struct <- demog$pop.age.byageclasses.1950.2100[(demog.n.ages*s-demog.n.ages+1):(demog.n.ages*s),(year-1950+1)]
-    age <- as.numeric(names(pop.struct))
+    age <- as.numeric(tran@age.class)
 
     if (!is.null(tot.subpop)) {
       tot.pop <- tot.subpop[s]
@@ -42,7 +42,7 @@ space.create.country.x.DFE.ID.state.matrix <- function(uncode, tot.subpop=NULL, 
     #note that NUMBER is imposed externally (since we might not want full countries... because interested in stochasticity)
     sp <- smooth.spline(age, pop.struct)  # gives "slope" between age (range 0-100) and population size per age (therefore 101 items)
     pred <- predict(sp, tran@age.class/12)$y # predicts population size per age class (total 280 age classes)
-    #plot(age,pop.struct, ylim=c(0,3000000))
+    #plot(age,pop.struct)
     #points(tran@age.class/12,pred,type="l",col=2)
 
     #Adjust for varying bin width
