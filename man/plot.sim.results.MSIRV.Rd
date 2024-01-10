@@ -4,10 +4,12 @@
 \alias{plot.sim.results.MSIRV}
 \title{Plot method for class "sim.results.MSIRV"}
 \usage{
-\method{plot}{sim.results.MSIRV}(x, ...)
+\method{plot}{sim.results.MSIRV}(x, main, ...)
 }
 \arguments{
 \item{x}{object of class "sim.results.MSIRV"}
+
+\item{main}{character, plot title}
 
 \item{...}{ignored}
 }

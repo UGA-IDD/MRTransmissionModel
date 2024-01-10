@@ -35,7 +35,7 @@ EX.Country.part2(
   MR2SIAcorrelation = FALSE,
   SIAinacc = FALSE,
   prop.inacc = NULL,
-  SIAinefficient = NULL
+  SIAinefficient = FALSE
 )
 }
 \arguments{

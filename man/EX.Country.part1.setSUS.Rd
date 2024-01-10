@@ -30,7 +30,8 @@ EX.Country.part1.setSUS(
   routine.vac.age.index = 12,
   demog_data = NULL,
   starting.prop.immune = c(0.75, 0.75, 0.75, 0.75),
-  starting.prop.immune.ages.in.months = c(9, 12, 24, 240)
+  starting.prop.immune.ages.in.months = c(9, 12, 24, 240),
+  max.immunity = 0.98
 )
 }
 \arguments{
@@ -82,9 +83,11 @@ EX.Country.part1.setSUS(
 
 \item{demog_data}{optional demography data for use if use_montagu_demog==T}
 
-\item{starting.prop.immune}{vector - starting proportion immune associated with starting.prop.immune.ages.in.months}
+\item{starting.prop.immune}{vector - starting proportion immune associated with starting.prop.immune.ages.in.months - at least 4 unique numbers required}
 
-\item{starting.prop.immune.ages.in.months}{vector - the ages (in months) associated with starting.prop.immune}
+\item{starting.prop.immune.ages.in.months}{vector - the ages (in months) associated with starting.prop.immune -  at least 4 unique numbers required}
+
+\item{max.immunity}{numeric - proportion of maximum immunity allowed}
 }
 \value{
 experiment result

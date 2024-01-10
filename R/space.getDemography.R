@@ -1,62 +1,59 @@
-#' Function to get spatial demography - this function is temporary and will need to be totally revamped
+#' Function to get spatial demography
 #'
-#' @param iso3code ISO3 country code
+#' @param age.classes numeric - in months
+#' @param iso3code character
+#'
+#' @import dplyr
+#' @import schoolentrydataZambia
 #'
 #' @return list, demographic data
-#' @export
 #'
-space.getDemography <- function(iso3code){
+space.getDemography <- function(age.classes, iso3code){
 
-  # library(logspline)
-  # setOldClass("oldlogspline")
-  # library(KernSmooth)
-  # library(scales) #for alpha function
-  # library(zoo) #to fill in NAs from the dpt1 estimates
-  # library(survival) #for the PDF of age of vaccination
-  # library(countrycode) #to transfer b/w uncode and iso3codes and country names
-  # library(readxl)
-  # library(dplyr)
-  #
-  # dyn.load("./source/MRModel-funcs.so") #run "R CMD SHLIB source/MRModel-funcs.c" in terminal to compile
-  # source("./source/build.R")
-  # source("./source/base.R")
-  # source("./source/user_interface.R")
-  # source("./source/who_un_inputs.R")
-  # source("./source/new_functions.R")
-  #
-  # library(wpp2019) #UN and WHO data model inputs require wpp2019
-  setup <- setupCountry.Dec2021(country="Zambia")
-  year <- 1980
-  t.max <- length(year:2100)
-  generation.time <- 0.5
-  age.classes <- c(1:240, seq(252,1212,12))
+  zamb_data <- schoolentrydataZambia::getDemography(iso3code)
+  subpop.names <- zamb_data$pop.total.1950.2100 %>% arrange(district) %>% pull(district)
 
-  pop.total.1950.2100 <- rbind(setup$pop.total.1950.2100, setup$pop.total.1950.2100*0.5)
-  pop.age.byageclasses.1950.2100 <- rbind(setup$pop.age.byageclasses.1950.2100, setup$pop.age.byageclasses.1950.2100*0.5)
-  tfr.1950.2100 <- rbind(setup$tfr.1950.2100, setup$tfr.1950.2100)
-  e0.1950.2100 <- rbind(setup$e0.1950.2100, setup$e0.1950.2100)
-  asfr.1950.2100 <- rbind(setup$asfr.1950.2100, setup$asfr.1950.2100)
-  repro.age.sex.dist.1950.2100 <- rbind(setup$repro.age.sex.dist.1950.2100, setup$repro.age.sex.dist.1950.2100)
-  births.1950.2100 <- rbind(setup$births.1950.2100, setup$births.1950.2100)
-  cbr.1950.2100 <- rbind(setup$cbr.1950.2100, setup$cbr.1950.2100)
-  yr.agespecificbirths.per.1000 <- rbind(setup$yr.agespecificbirths.per.1000, setup$yr.agespecificbirths.per.1000)
-  asdr.1950.2100.by5 <- rbind(setup$asdr.1950.2100.by5, setup$asdr.1950.2100.by5)
-  asdr.object <- new("space.nMx",
-                     rate.years = setup$asdr.object@rate.years,
-                     rates = rbind(setup$asdr.object@rates, setup$asdr.object@rates),
-                     mid.age = setup$asdr.object@mid.age,
-                     n.subpops = 2)
+  # arranging all by district name so that will be consistent with subpop.names above
+  pop.total.1950.2100 <- zamb_data$pop.total.1950.2100 %>% arrange(district) %>% select(-c(1:3)) %>% as.data.frame()
+  cbr.1950.2100 <- zamb_data$cbr.1950.2100 %>% arrange(district) %>% select(-c(1:3)) %>% as.data.frame()
+  asdr.1950.2100.by5 <- zamb_data$asdr.1950.2100 %>% arrange(district) %>% select(-c(1:4)) %>% as.data.frame()
+  asdr.rate.years <- zamb_data$asdr.rate.years
+  asdr.rate.mid.age <- zamb_data$asdr.rate.mid.age
+
+  # getting pop by by age.classes - and make sure consistent with pop total
+  pop.age.1950.2100 <- zamb_data$pop.age.byageclasses.1950.2100 %>%
+    pivot_longer(cols=-c(ISO3, district, province, age), names_to="year", values_to="pop")
+  years <- unique(pop.age.1950.2100$year)
+  ages <- unique(pop.age.1950.2100$age)
+  #setup empty matrix
+  pop.age.byageclasses.1950.2100 <- matrix(NA, nrow=(length(age.classes)*length(subpop.names)), ncol=length(years))
+  #fill matrix by district and year
+  for (d in 1:length(subpop.names)){
+    for (y in 1:length(years)){
+      tmp.pop.ages <- pop.age.1950.2100 %>% filter(district==subpop.names[d]) %>% filter(year==years[y]) %>% pull(pop)
+      f <- smooth.spline(ages, tmp.pop.ages)
+      tmp.pop.age.classes <- predict(f,age.classes/12)$y
+      #reduce to 1 if negative
+      tmp.pop.age.classes[tmp.pop.age.classes<0] <- 1
+      #adjust for varying bin width!
+      tmp.pop.age.classes <- tmp.pop.age.classes*diff(c(0,age.classes))
+      #rescale the age distribution to the estimated population each year
+      true.pop <- zamb_data$pop.total.1950.2100  %>%
+        pivot_longer(cols=-c(ISO3, district, province), names_to="year", values_to="pop") %>%
+        filter(district==subpop.names[d]) %>% filter(year==years[y]) %>% pull(pop)
+      tmp.pop.age.classes <- true.pop*(tmp.pop.age.classes/sum(tmp.pop.age.classes))
+      #fill in the matrix
+      pop.age.byageclasses.1950.2100[(d*length(age.classes)-(length(age.classes)-1)):(d*length(age.classes)),y] <- tmp.pop.age.classes
+    }
+  }
 
   return(list(pop.total.1950.2100=pop.total.1950.2100,
               pop.age.byageclasses.1950.2100=pop.age.byageclasses.1950.2100,
-              tfr.1950.2100=tfr.1950.2100,
-              e0.1950.2100=e0.1950.2100,
-              asfr.1950.2100=asfr.1950.2100,
-              repro.age.sex.dist.1950.2100=repro.age.sex.dist.1950.2100,
-              births.1950.2100=births.1950.2100,
               cbr.1950.2100=cbr.1950.2100,
               asdr.1950.2100.by5=asdr.1950.2100.by5,
-              asdr.object=asdr.object))
+              asdr.rate.years=asdr.rate.years,
+              asdr.rate.mid.age=asdr.rate.mid.age,
+              subpop.names=subpop.names))
 }
 
 

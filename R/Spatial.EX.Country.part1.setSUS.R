@@ -1,6 +1,7 @@
 #' Function to set up SPATIAL experiment and run the transients out
 #'
 #' @param uncode UN country code
+#' @param iso3code character iso3 code to matches uncode
 #' @param generation.time the desired generation time in months
 #' @param age.classes vector - the upper limit of the age classes we are interested in months
 #' @param maternal.decay.rt rate of maternal decay of immunity to rubella
@@ -31,7 +32,8 @@
 #' @export
 #'
 
-Spatial.EX.Country.part1.setSUS <- function(uncode,
+Spatial.EX.Country.part1 <- function(uncode,
+                                     iso3code,
                                      generation.time = 0.5, #generation time in months
                                      age.classes = c(1:240, seq(241,720,12)),
                                      maternal.decay.rt=0.95, #based on Metcalf, 2012 paper
@@ -55,10 +57,12 @@ Spatial.EX.Country.part1.setSUS <- function(uncode,
                                      routine.vac.age.index=12,
                                      n.subpops=2,
                                      coupling = matrix(1, nrow=n.subpops, ncol=n.subpops),
-                                     starting.prop.immune = rep(0.75,n.subpops*4),
-                                     starting.prop.immune.ages.in.months = c(9, 12, 24, 240)) {
+                                     starting.prop.immune = c(0.75, 0.75, 0.75, 0.75),
+                                     starting.prop.immune.ages.in.months = c(9, 12, 24, 240),
+                                     max.immunity = 0.98) {
 
   tmp <- Space.Get.CountryX.Starting.Pop.MSIRV(uncode=uncode,
+                                               iso3code=iso3code,
                                                generation.time=generation.time,
                                                age.classes=age.classes,
                                                maternal.decay.rt=maternal.decay.rt,
@@ -137,41 +141,63 @@ Spatial.EX.Country.part1.setSUS <- function(uncode,
   res <- run(EX, rescale.WAIFW=T)
   #plot(res@result)
 
-  #replacing waifw with scaled waifw
-  EX@trans@waifw <- res@experiment.def@trans@waifw
-
-  # Fix the starting susceptible population
-  #reset based on tmax
-  age.struct.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  # Reset
+  age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
   age.struc.tmax <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
   for (s in 1:n.subpops){
-    prop.struc.sim <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
-    tmp <- rep(age.struct.t0[s,], each=5)*prop.struc.sim
+    prop.struc.tmax <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
+    tmp <- rep(age.struc.t0[s,], each=5)*prop.struc.tmax
     if (s==1) new.state <- tmp
     if (s!=1) new.state <- c(new.state, tmp)
   }
-  #replace age-specific immune profiles
+  EX@state.t0[,1] <- new.state
+  EX@trans@waifw <- res@experiment.def@trans@waifw
+
+  res <- run(EX, rescale.WAIFW=T)
+  #plot(res@result)
+
+  # Reset
+  age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.tmax <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
   for (s in 1:n.subpops){
-    #subpop indexes
-    n.ages <- length(starting.prop.immune.ages.in.months)
-    subpop.indexes <- (s*n.ages-n.ages+1):(s*n.ages)
-    #determine which age indexes match the argument starting.prop.immune.ages.in.months
-    indexes <- which(findInterval(age.classes, starting.prop.immune.ages.in.months[1])==1 &
-                       findInterval(age.classes, starting.prop.immune.ages.in.months[length(starting.prop.immune.ages.in.months)])==0)
-    #interpolate ages based on age.classes
-    f <- smooth.spline(starting.prop.immune.ages.in.months, starting.prop.immune[subpop.indexes])
+    prop.struc.tmax <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
+    tmp <- rep(age.struc.t0[s,], each=5)*prop.struc.tmax
+    if (s==1) new.state <- tmp
+    if (s!=1) new.state <- c(new.state, tmp)
+  }
+  EX@state.t0[,1] <- new.state
+  EX@trans@waifw <- res@experiment.def@trans@waifw
+
+  res <- run(EX, rescale.WAIFW=T)
+  #plot(res@result)
+
+  # Fix the starting susceptible population
+  #reset based on tmax
+  age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.tmax <- space.wrapper.GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
+  for (s in 1:n.subpops){
+    prop.struc.tmax <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
+    tmp <- rep(age.struc.t0[s,], each=5)*prop.struc.tmax
+    if (s==1) new.state <- tmp
+    if (s!=1) new.state <- c(new.state, tmp)
+  }
+  #determine which age indexes match the argument starting.prop.sus.ages.in.months
+  indexes <- which(findInterval(age.classes, starting.prop.immune.ages.in.months[1])==1 &
+                     findInterval(age.classes, starting.prop.immune.ages.in.months[length(starting.prop.immune.ages.in.months)])==0)
+  #interpolate ages based on age.classes for each subpop
+  for (s in 1:n.subpops){
+    f <- smooth.spline(starting.prop.immune.ages.in.months, starting.prop.immune[,s])
     pred.prop.immune <- predict(f,age.classes[indexes])$y
-    pred.prop.immune <- sapply(pred.prop.immune, function(x) min(x, 0.98))
+    pred.prop.immune <- sapply(pred.prop.immune, function(x) min(x, max.immunity))
     #replace age-specific profiles IF proportion susceptible given for that age group
-    new.state[EX@trans@r.inds[s*length(age.classes)-length(age.classes)+indexes]] <- age.struct.t0[s,indexes]*pred.prop.immune
-    new.state[EX@trans@s.inds[s*length(age.classes)-length(age.classes)+indexes]] <- age.struct.t0[s,indexes]*(1-pred.prop.immune)
-    new.state[EX@trans@m.inds[s*length(age.classes)-length(age.classes)+indexes]] <- 0
-    new.state[EX@trans@i.inds[s*length(age.classes)-length(age.classes)+indexes]] <- 0
-    new.state[EX@trans@v.inds[s*length(age.classes)-length(age.classes)+indexes]] <- 0
+    new.state[EX@trans@r.inds[indexes]] <- age.struc.t0[s,indexes]*pred.prop.immune
+    new.state[EX@trans@s.inds[indexes]] <- age.struc.t0[s,indexes]*(1-pred.prop.immune)
+    new.state[EX@trans@m.inds[indexes]] <- 0
+    new.state[EX@trans@i.inds[indexes]] <- 0
+    new.state[EX@trans@v.inds[indexes]] <- 0
   }
 
   EX@state.t0[,1] <- new.state
-
 
   return(EX)
 

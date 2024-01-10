@@ -30,6 +30,11 @@ create.surv.prob.over.age <- function(age.classes, generation.time, nMx=NULL, ye
   # exp to get back to m.x.n from it's previous log state and take 1-m.x.n to get survival rate
   #plot(survs)
 
+  if (any(survs<0)){
+    print(paste0("age-specific survival model fit producing NAs, see create.surv.prob.over.age.time() at time1"))
+    survs[which(survs<0)] <-  survs[min(which(survs>0))]
+  }
+
   # Convert yearly rates to generation time rates
   survs <- 1+(log(survs)/(1/generation.time.year))
 

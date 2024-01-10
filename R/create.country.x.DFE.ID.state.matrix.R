@@ -33,7 +33,7 @@ create.country.x.DFE.ID.state.matrix <- function(uncode, tot.pop=NULL, tran,
     }
 
   }else{
-    demog <- getDemography.wpp2019(uncode=uncode)
+    demog <- getDemography.wpp2022.mini(uncode=uncode)
 
     #wpp2019 data is population/1000 so we need to multiply to get true population
     pop.struct <- demog$pop.age.byageclasses.1950.2100[,(year-1950+1)]*1000

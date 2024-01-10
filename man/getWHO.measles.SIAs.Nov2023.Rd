@@ -4,7 +4,7 @@
 \alias{getWHO.measles.SIAs.Nov2023}
 \title{Function to convert measles SIAs into something usable}
 \usage{
-getWHO.measles.SIAs.Nov2023(iso3code, uncode, upper.limit = 0.97)
+getWHO.measles.SIAs.Nov2023(iso3code, uncode, upper.limit = 0.97, demog)
 }
 \arguments{
 \item{iso3code}{iso3code}
@@ -12,6 +12,8 @@ getWHO.measles.SIAs.Nov2023(iso3code, uncode, upper.limit = 0.97)
 \item{uncode}{UN country code}
 
 \item{upper.limit}{upper coverage limit as proportion}
+
+\item{demog}{demography from setupCountry.Nov.2023()}
 }
 \value{
 age range, year, and coverage of each SIA

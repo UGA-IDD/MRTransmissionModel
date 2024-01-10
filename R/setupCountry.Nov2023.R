@@ -35,7 +35,7 @@ setupCountry.Nov2023 <- function(country){
   # MCV routine coverage
   filep <- system.file("/extdata/MCV_WUENIC_coverage_estimates_Downloaded8Nov2023.xlsx",
                        package = "MRTransmissionModel")
-  filep <- "inst/extdata/MCV_WUENIC_coverage_estimates_Downloaded8Nov2023.xlsx" #use prior to rebuilding package
+  #filep <- "inst/extdata/MCV_WUENIC_coverage_estimates_Downloaded8Nov2023.xlsx" #use prior to rebuilding package
   df <- readxl::read_xlsx(path = filep, sheet="Sheet1")
 
   #Get MCV1 and MCV2 - both length 120
@@ -46,8 +46,13 @@ setupCountry.Nov2023 <- function(country){
     dplyr::select(COVERAGE) %>%
     dplyr::mutate(COVERAGE=COVERAGE/99) %>%
     unlist() %>% as.numeric %>% rev
-  MCV1.coverage <- c(MCV1.coverage, rep(mean(MCV1.coverage[(length(MCV1.coverage)-2):length(MCV1.coverage)]), length((year_of_last_vaccination_data+1):2100)))
+  if(length(MCV1.coverage)<length(1980:year_of_last_vaccination_data)) MCV1.coverage <- c(rep(0,length(1980:year_of_last_vaccination_data)-length(MCV1.coverage)), MCV1.coverage)
+  indeces <- which(1980:2100 %in% c(2018, 2019, 2022)) #choosing mean of these years (rather than last three) b/c COVID
+  MCV1.coverage <- c(MCV1.coverage,
+                     rep(mean(MCV1.coverage[indeces]),
+                         length((year_of_last_vaccination_data+1):2100)))
   MCV1.coverage[is.na(MCV1.coverage)] <- 0 #is NA assume 0
+
   MCV2.coverage <- df %>%
     dplyr::filter(COVERAGE_CATEGORY=="WUENIC",
                   CODE==iso3code,
@@ -55,13 +60,16 @@ setupCountry.Nov2023 <- function(country){
     dplyr::select(COVERAGE) %>%
     dplyr::mutate(COVERAGE=COVERAGE/99) %>%
     unlist() %>% as.numeric %>% rev
-  MCV2.coverage <- c(rep(0, length(1980:1999)), MCV2.coverage, rep(mean(MCV2.coverage[(length(MCV2.coverage)-2):length(MCV2.coverage)], na.rm=T), length((year_of_last_vaccination_data+1):2100)))
+  if(length(MCV2.coverage)<length(1980:year_of_last_vaccination_data)) MCV2.coverage <- c(rep(0,length(1980:year_of_last_vaccination_data)-length(MCV2.coverage)), MCV2.coverage)
+  MCV2.coverage <- c(MCV2.coverage,
+                     rep(mean(MCV2.coverage[indeces], na.rm=T),
+                         length((year_of_last_vaccination_data+1):2100)))
   MCV2.coverage[is.na(MCV2.coverage)] <- 0 #is NA assume 0
 
   # RCV routine Coverage
   filep2 <- system.file("/extdata/RCV_WUENIC_coverage_estimates_Downloaded8Nov2023.xlsx",
                         package = "MRTransmissionModel")
-  filep2 <- "inst/extdata/RCV_WUENIC_coverage_estimates_Downloaded8Nov2023.xlsx" #use prior to rebuilding package
+  #filep2 <- "inst/extdata/RCV_WUENIC_coverage_estimates_Downloaded8Nov2023.xlsx" #use prior to rebuilding package
   df <- readxl::read_xlsx(path = filep2, sheet="Sheet1")
 
   RCV1.coverage <- df %>%
@@ -71,18 +79,21 @@ setupCountry.Nov2023 <- function(country){
     dplyr::select(COVERAGE) %>%
     dplyr::mutate(COVERAGE=COVERAGE/99) %>%
     unlist() %>% as.numeric %>% rev
-  RCV1.coverage <- c(RCV1.coverage, rep(mean(RCV1.coverage[(length(RCV1.coverage)-2):length(RCV1.coverage)]), length((year_of_last_vaccination_data+1):2100)))
+  if(length(RCV1.coverage)<length(1980:year_of_last_vaccination_data)) RCV1.coverage <- c(rep(0,length(1980:year_of_last_vaccination_data)-length(RCV1.coverage)), RCV1.coverage)
+  RCV1.coverage <- c(RCV1.coverage,
+                     rep(mean(RCV1.coverage[indeces]),
+                         length((year_of_last_vaccination_data+1):2100)))
   RCV1.coverage[is.na(RCV1.coverage)] <- 0 #is NA assume 0
 
   # SIA Coverage - FOR MEASLES
-  SIA.measles <- getWHO.measles.SIAs.Nov2023(iso3code, uncode, upper.limit=0.97) ##xxamy - per 8Nov2023, it works for all countries/rows
+  SIA.measles <- getWHO.measles.SIAs.Nov2023(iso3code, uncode, upper.limit=0.97, demog) ##xxamy - per 8Nov2023, it works for all countries/rows
   measlesSIA.coverage <- age.min.sia.measles <- age.max.sia.measles <- rep(0, length(MCV1.coverage))
   measlesSIA.coverage[c(1980:2100) %in% SIA.measles$year] <- SIA.measles$coverage
   age.min.sia.measles[c(1980:2100) %in% SIA.measles$year] <- SIA.measles$age.min
   age.max.sia.measles[c(1980:2100) %in% SIA.measles$year] <- SIA.measles$age.max
 
-  #SIA Coverage - For RUBELLA - may need updating
-  SIA.rubella <- getWHO.rubella.SIAs.Nov2023(iso3code, uncode, upper.limit=0.97) ##xxamy - per 8Nov2023, it works for all countries/rows
+  #SIA Coverage - For RUBELLA
+  SIA.rubella <- getWHO.rubella.SIAs.Nov2023(iso3code, uncode, upper.limit=0.97, demog) ##xxamy - per 8Nov2023, it works for all countries/rows
   rubellaSIA.coverage <- age.min.sia.rubella <- age.max.sia.rubella <- rep(0, length(MCV1.coverage))
   rubellaSIA.coverage[c(1980:2100) %in% SIA.rubella$year] <- SIA.rubella$coverage
   age.min.sia.rubella[c(1980:2100) %in% SIA.rubella$year] <- SIA.rubella$age.min
@@ -110,7 +121,7 @@ setupCountry.Nov2023 <- function(country){
 
   if (length(dtp.1980.to.2100)==0){ #Palestine and Kosovo dont have DTP1 estimates
     # should this be RCV1.coverage?
-    dtp.1980.to.2100 <- rep(1, (length(RCV1.coverage.1980to2100)+1))
+    dtp.1980.to.2100 <- rep(1, (length(MCV1.coverage)+1))
   }
 
   #Force minimum acceptable to be MCV1, if dtp1 < MCV1 - xxxamy

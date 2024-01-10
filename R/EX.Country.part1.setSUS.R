@@ -24,8 +24,9 @@
 #' @param routine.vac xxx
 #' @param routine.vac.age.index xxx
 #' @param demog_data optional demography data for use if use_montagu_demog==T
-#' @param starting.prop.immune vector - starting proportion immune associated with starting.prop.immune.ages.in.months
-#' @param starting.prop.immune.ages.in.months vector - the ages (in months) associated with starting.prop.immune
+#' @param starting.prop.immune vector - starting proportion immune associated with starting.prop.immune.ages.in.months - at least 4 unique numbers required
+#' @param starting.prop.immune.ages.in.months vector - the ages (in months) associated with starting.prop.immune -  at least 4 unique numbers required
+#' @param max.immunity numeric - proportion of maximum immunity allowed
 #'
 #'
 #' @include setClasses.R
@@ -59,7 +60,8 @@ EX.Country.part1.setSUS <- function(uncode,
                              routine.vac.age.index=12,
                              demog_data = NULL,
                              starting.prop.immune = c(0.75, 0.75, 0.75, 0.75),
-                             starting.prop.immune.ages.in.months = c(9, 12, 24, 240)) {
+                             starting.prop.immune.ages.in.months = c(9, 12, 24, 240),
+                             max.immunity = 0.98) {
 
   # build.R
   tmp <- Get.CountryX.Starting.Pop.MSIRV(uncode=uncode,
@@ -143,8 +145,29 @@ EX.Country.part1.setSUS <- function(uncode,
   res <- run(EX, rescale.WAIFW=T)
   #plot(res@result)
 
-  #replacing waifw with scaled waifw
+  # Reset
+  # function "GetNumber.per.AgeGroup()" in build.R
+  age.struct.1991 <- GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.sim <- GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
+  prop.struc.sim <- res@result[,ncol(res@result)]/rep(age.struc.sim, each=5)
+  new.state <- rep(age.struct.1991, each=5)*prop.struc.sim
+  EX@state.t0[,1] <- new.state
+  #EX@state.t0[,1] <- sum(res@result[,1])*res@result[,ncol(res@result)]/sum(res@result[,ncol(res@result)])
   EX@trans@waifw <- res@experiment.def@trans@waifw
+
+  res <- run(EX, rescale.WAIFW=T)
+  #plot(res@result)
+
+  # Reset
+  age.struct.1991 <- GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.sim <- GetNumber.per.AgeGroup(state=res@result@.Data[,ncol(res@result@.Data)], trans=EX@trans)
+  prop.struc.sim <- res@result[,ncol(res@result)]/rep(age.struc.sim, each=5)
+  new.state <- rep(age.struct.1991, each=5)*prop.struc.sim
+  EX@state.t0[,1] <- new.state
+  #EX@state.t0[,1] <- sum(res@result[,1])*res@result[,ncol(res@result)]/sum(res@result[,ncol(res@result)])
+  EX@trans@waifw <- res@experiment.def@trans@waifw
+
+  res <- run(EX, rescale.WAIFW=T)
 
   # Fix the starting susceptible population
   #reset based on tmax
@@ -158,7 +181,7 @@ EX.Country.part1.setSUS <- function(uncode,
   #interpolate ages based on age.classes
   f <- smooth.spline(starting.prop.immune.ages.in.months, starting.prop.immune)
   pred.prop.immune <- predict(f,age.classes[indexes])$y
-  pred.prop.immune <- sapply(pred.prop.immune, function(x) min(x, 0.98))
+  pred.prop.immune <- sapply(pred.prop.immune, function(x) min(x, max.immunity))
   #replace age-specific profiles IF proportion susceptible given for that age group
   new.state[EX@trans@r.inds[indexes]] <- age.struct.t0[indexes]*pred.prop.immune
   new.state[EX@trans@s.inds[indexes]] <- age.struct.t0[indexes]*(1-pred.prop.immune)

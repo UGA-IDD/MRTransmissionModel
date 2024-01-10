@@ -2,16 +2,20 @@
 % Please edit documentation in R/space.getDemography.R
 \name{space.getDemography}
 \alias{space.getDemography}
-\title{Function to get spatial demography - this function is temporary and will need to be totally revamped}
+\title{Function to get spatial demography}
 \usage{
-space.getDemography(iso3code)
+  
+space.getDemography(age.classes, iso3code)
 }
 \arguments{
-\item{iso3code}{ISO3 country code}
+\item{age.classes}{numeric - in months}
+
+\item{iso3code}{character}
+
 }
 \value{
 list, demographic data
 }
 \description{
-Function to get spatial demography - this function is temporary and will need to be totally revamped
+Function to get spatial demography
 }

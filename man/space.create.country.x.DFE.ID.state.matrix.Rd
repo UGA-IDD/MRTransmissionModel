@@ -5,7 +5,7 @@
 \title{Function to create a state matrix at the disease free equilibrium (DFE) from a transition object}
 \usage{
 space.create.country.x.DFE.ID.state.matrix(
-  uncode,
+  iso3code,
   tot.subpop = NULL,
   tran,
   epi.class.label = c("M", "S", "I", "R", "V"),
@@ -13,7 +13,7 @@ space.create.country.x.DFE.ID.state.matrix(
 )
 }
 \arguments{
-\item{uncode}{numeric; UN country code}
+\item{iso3code}{character; iso3 code}
 
 \item{tot.subpop}{vector; sub-populations by which you can rescale if you want}
 

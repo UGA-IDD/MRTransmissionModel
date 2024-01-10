@@ -1,6 +1,7 @@
 #' Function to get starting state vector and transition object - built originally from Get.CountryX.Starting.Pop.MSIRV
 #'
 #' @param uncode UN country code
+#' @param iso3code character iso3 code to matches uncode
 #' @param generation.time the desired generation time in months
 #' @param age.classes vector; the upper limit of the age classes we are interested in months
 #' @param maternal.decay.rt rate of maternal decay of immunity to rubella
@@ -25,6 +26,7 @@
 #'
 
 Space.Get.CountryX.Starting.Pop.MSIRV <- function(uncode,
+                                                  iso3code,
                                                   generation.time = 0.5,  #generation time in months
                                                   age.classes = c(1:240, seq(241,720,12)),
                                                   maternal.decay.rt=0.95, #based on Metcalf, 2012 paper
@@ -83,7 +85,7 @@ Space.Get.CountryX.Starting.Pop.MSIRV <- function(uncode,
 
 
   ## Putting in starting state where everyone susceptible
-  state <- space.create.country.x.DFE.ID.state.matrix(uncode=uncode, tot.subpop=tot.subpop, tran=tran,
+  state <- space.create.country.x.DFE.ID.state.matrix(iso3code=iso3code, tot.subpop=tot.subpop, tran=tran,
                                                       epi.class.label = c("M","S","I","R","V"), year=year)
 
   ## Update starting births now because need sum(state) = pop for each subpop

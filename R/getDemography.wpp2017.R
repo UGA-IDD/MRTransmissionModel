@@ -9,6 +9,7 @@
 #' @importFrom zoo na.spline
 #' @importFrom utils data
 #' @import countrycode
+#' @import wpp2017
 #'
 #' @return demography for each country
 #' @export

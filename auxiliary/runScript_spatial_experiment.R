@@ -119,3 +119,40 @@ rcv_exp <- Spatial.EX.Country.part2(uncode = setup$uncode,
                                     SIAinefficient = TRUE)
 print("vaccine experiment done")
 plot(rcv_exp@result)
+
+## Try #2 with actual Zambia data
+load("/Users/winter/Library/CloudStorage/GoogleDrive-amykwinter@gmail.com/My Drive/Gavi_ZeroD_Personal/SchoolEntry/Subnational_Model_Sims/output/Zambia.Spatial.Setup.Object.RData")
+
+year = 2016
+uncode=setup$uncode
+iso3code="ZMB"
+generation.time = 0.5
+age.classes = c(1:240, seq(252,960,12))
+maternal.decay.rt = 0.45 #based on Leuridan + others wanes b/w 3-9 months
+exponent = 0.97
+frequency.dep=TRUE
+yr.births.per.1000.bysubpop <- setup$cbr.1950.2100[,year-1950+1]
+targeted.intro=FALSE
+intro.rate=1/24/320
+tot.subpop=NULL #it will pull a pop automatically from pop distribution if NULL
+R0 = 18
+t.max = 20
+get.births=setup$get.births.here
+seasonal.amp = 0.15 #metcalf et al 2012 used 0.35, age-structured metcalf paper used 0.2, ferrari 2007 nature 0.2 to 0.6 for measles
+flat.WAIFW=FALSE
+country.specific.WAIFW=TRUE
+vynnycky.waifw=FALSE
+vynnycky.waifw.betas = c(2,1)
+space.asdr.object=setup$asdr.object
+routine.vac=0
+routine.vac.age.index=12
+n.subpops=length(setup$district.order)
+coupling = setup$coupling
+starting.prop.immune = setup$seroprev.byageclasses.subpop %>%
+  select(age, mean.prob, district) %>%
+  pivot_wider(names_from=district, values_from=mean.prob) %>%
+  select(-age) %>% as.data.frame()
+starting.prop.immune.ages.in.months = c(unique(setup$seroprev.byageclasses.subpop$age))
+max.immunity = 0.98
+
+
