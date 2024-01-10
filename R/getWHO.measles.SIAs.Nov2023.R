@@ -3,6 +3,7 @@
 #' @param iso3code iso3code
 #' @param uncode UN country code
 #' @param upper.limit upper coverage limit as proportion
+#' @param demog demography from setupCountry.Nov.2023()
 #'
 #' @importFrom readxl read_excel
 #' @import dplyr
@@ -11,7 +12,7 @@
 #' @export
 #'
 
-getWHO.measles.SIAs.Nov2023 <- function(iso3code, uncode, upper.limit=0.97){
+getWHO.measles.SIAs.Nov2023 <- function(iso3code, uncode, upper.limit=0.97, demog){
 
   filep <- system.file("/extdata/SIAs_WHO_Downloaded8Nov2023.xlsx",
                        package = "MRTransmissionModel")
@@ -34,9 +35,8 @@ getWHO.measles.SIAs.Nov2023 <- function(iso3code, uncode, upper.limit=0.97){
     age.range.new <- convertAgeSIA(sia.age.range = df$`Age group`)
     years.sia.new <- df$Year
 
-    coverage.new <- rep(NA, length(years.sia.new))
+    coverage.new <- age.range.new.min <- age.range.new.max <- rep(NA, length(years.sia.new))
     for (s in 1:length(years.sia.new)){
-      print(s)
       age.min.months <- age.range.new[s,1]
       age.min <- ceiling(age.range.new[s,1]/12)
       age.max <- ceiling(age.range.new[s,2]/12)
@@ -58,7 +58,7 @@ getWHO.measles.SIAs.Nov2023 <- function(iso3code, uncode, upper.limit=0.97){
         } else { #Extent is Rollover-National or Subnational
           #get national population of the target age
           uncode <- countrycode(df$`ISO3 code`[s], "iso3c", "un")
-          out <- getDemography.wpp2022(uncode=uncode)
+          out <- demog
           if (age.min==1){
             tot.pop <- sum(out$pop.age.byageclasses.1950.2100[2:age.max,(y-1950)])*1000
             tot.pop <- as.numeric(tot.pop+(age.min.months/12*out$pop.age.byageclasses.1950.2100[1,(y-1950)]*1000))
@@ -73,21 +73,39 @@ getWHO.measles.SIAs.Nov2023 <- function(iso3code, uncode, upper.limit=0.97){
           }
         }
 
-      coverage.new <- (pmin(coverage.new, upper.limit))
-      age.range.new.min <- age.range.new[,1]
-      age.range.new.max <- age.range.new[,2]
+      coverage.new[s] <- (pmin(coverage.new[s], upper.limit))
+      age.range.new.min[s] <- age.range.new[s,1]
+      age.range.new.max[s] <- age.range.new[s,2]
       }
     }
 
+    #Remove SIA if we get NA for coverage
+    if (any(is.na(coverage.new))){
+      print(paste("SIA Coverage is NA in year:", years.sia.new[which(is.na(coverage.new))]))
+      coverage.new <- coverage.new[!is.na(coverage.new)]
+      age.range.new.min <- age.range.new.min[!is.na(coverage.new)]
+      age.range.new.max <- age.range.new.max[!is.na(coverage.new)]
+      years.sia.new <- years.sia.new[!is.na(coverage.new)]
+    }
+
+    #This combines information for in which multiple SIAs were conducted
+    years.sia.new2 <- unique(years.sia.new)
+    coverage.new2 <- age.range.new.min2 <- age.range.new.max2 <- rep(NA, length(years.sia.new2))
+    for (y in 1:length(years.sia.new2)){
+      coverage.new2[y] <-  pmin(sum(coverage.new[years.sia.new %in% years.sia.new2[y]], na.rm=T), upper.limit)
+      age.range.new.min2[y] <- age.range.new.min[years.sia.new %in% years.sia.new2[y]][1]
+      age.range.new.max2[y] <- age.range.new.max[years.sia.new %in% years.sia.new2[y]][1]
+    }
+
   } else {
-    coverage.new <- 0
-    age.range.new.min <- 12
-    age.range.new.max <- 48
-    years.sia.new <- 2000
+    coverage.new2 <- 0
+    age.range.new.min2 <- 12
+    age.range.new.max2 <- 48
+    years.sia.new2 <- 2000
   }
 
-  return(list(age.min=age.range.new.min,
-              age.max=age.range.new.max,
-              year=years.sia.new,
-              coverage=coverage.new))
+  return(list(age.min=age.range.new.min2,
+              age.max=age.range.new.max2,
+              year=years.sia.new2,
+              coverage=coverage.new2))
 }
