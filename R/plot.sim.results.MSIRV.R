@@ -1,6 +1,7 @@
 #' Plot method for class "sim.results.MSIRV"
 #'
 #' @param x object of class "sim.results.MSIRV"
+#' @param main character, plot title
 #' @param ... ignored
 #'
 #' @importFrom graphics par lines
@@ -10,7 +11,7 @@
 #' @method plot sim.results.MSIRV
 #' @export
 
-plot.sim.results.MSIRV <- function (x,...) {
+plot.sim.results.MSIRV <- function (x, main,...) {
 
   # plotting parameters
   from=0
@@ -76,7 +77,7 @@ plot.sim.results.MSIRV <- function (x,...) {
   }
 
   plot(tots@t, tots[tots@s.inds,]+tots[tots@m.inds,], type="b", xlab="t",
-       ylab="M+S", cex=.75, ylim=c(0, max(tots[tots@s.inds,]+tots[tots@m.inds,])))
+       ylab="M+S", cex=.75, ylim=c(0, max(tots[tots@s.inds,]+tots[tots@m.inds,])), main=main)
   lines(tots@t, tots[tots@s.inds,], lty=2, col="green")
   lines(tots@t, tots[tots@m.inds,], lty=3, col="blue")
   plt.events()

@@ -17,18 +17,25 @@ get.prem.WAIFW <- function (age.class.boundries = (1:90),
                             uncode, other.contact.matrix=FALSE,
                             bandwidth=c(3,3), adjustment_start_year=FALSE, year=1980) {
 
-  if (uncode==583) iso3code <- "ETH" #FSM - Somalia becomes Ethiopia
+  # Missing Prem Age Contacts
+  #these equate to the following iso3:
+  # "AND" "ATG" "AUS" "DMA" "GRD" "HTI" "JPN" "KIR" "LBN" "LIE" "MHL" "FSM" "MCO" "NRU" "PLW" "KNA" "SMR" "SYC" "SOM" "TUV", "XK"
+  uncode.missing <- c(20, 28, 36, 212, 308, 332, 392, 296, 422, 438, 584, 583, 492, 520, 585, 659, 674, 690, 706, 798, 999)
+
+  # If missing contact matrix - default is GBR
+  if (uncode %in% c(20, 28, 36, 212, 308, 392, 422, 438, 583, 492, 520, 585, 659, 674, 690)){
+    iso3code <- "GBR"
+    print(paste("Prem Contact Matrix Missing for uncode:", uncode, " - GBR set as default"))
+  }
   if (uncode==332) iso3code <- "DOM" #HTI - Haiti becomes Dominican Republic
   if (uncode==296) iso3code <- "FJI" #KIR - Kiribati becomes Fuji
   if (uncode==584) iso3code <- "SLB" #MHL - Marshall Islands becomes Solomon Islands
   if (uncode==706) iso3code <- "ETH" #SOM - Somalia becomes Ethiopia
   if (uncode==798) iso3code <- "TON" #TUV - Tuvalu becomes Tonga
   if (uncode==999) iso3code <- "ALB" #XK - Kosovo becomes Albania
-  if (!uncode %in% c(583, 332, 296, 584, 706, 798, 999)) {
+  if (!uncode %in% uncode.missing) {
     iso3code <- countrycode::countrycode(uncode, origin="un", destination="iso3c")
-    #name <- countrycode::countrycode(iso3code, origin="iso3c", destination="country.name")
   }
-
 
   contact_all <- MRTransmissionModel::contact_all
   #contact_all <- readRDS("./data/prem_contact_matrices_2021/contact_all.RDS")

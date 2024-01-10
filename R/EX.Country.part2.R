@@ -69,7 +69,7 @@ EX.Country.part2 <- function(uncode,
                              MR2SIAcorrelation = FALSE,
                              SIAinacc = FALSE,
                              prop.inacc = NULL,
-                             SIAinefficient = NULL){
+                             SIAinefficient = FALSE){
 
 
   ## Changing experiment type
@@ -132,15 +132,17 @@ EX.Country.part2 <- function(uncode,
   EX@obj.vcdf.MR2 = obj.vcdf.MR2
   EX@obj.prob.vsucc = obj.prob.vsucc
   EX@sia.timing.in.year = sia.timing.in.year
-  if (MR1MR2correlation) EX@MR1MR2correlation = MR1MR2correlation
-  if (MR1SIAcorrelation) EX@MR1SIAcorrelation = MR1SIAcorrelation
-  if (MR2SIAcorrelation) EX@MR2SIAcorrelation = MR2SIAcorrelation
-  if (SIAinefficient) EX@SIAinefficient = SIAinefficient
-  if (SIAinacc) {
+  if (MR1MR2correlation | MR1SIAcorrelation | MR2SIAcorrelation | SIAinefficient | SIAinacc){
+    EX@MR1MR2correlation = MR1MR2correlation
+    EX@MR1SIAcorrelation = MR1SIAcorrelation
+    EX@MR2SIAcorrelation = MR2SIAcorrelation
+    EX@SIAinefficient = SIAinefficient
     EX@SIAinacc = SIAinacc
-    #Setting up population always inaccessible to vaccine
-    EX@prop.inacc <- c(rep(prop.inacc, each=no.gens.in.year),  prop.inacc[length(prop.inacc)]) #by time step
-    #EX@prop.inacc = prop.inacc #by year
+    if (SIAinacc) {
+      #Setting up population always inaccessible to vaccine
+      EX@prop.inacc <- c(rep(prop.inacc, each=no.gens.in.year),  prop.inacc[length(prop.inacc)]) #by time step
+      #EX@prop.inacc = prop.inacc #by year
+    }
   }
 
   return(run(EX, rescale.WAIFW=rescale.WAIFW))

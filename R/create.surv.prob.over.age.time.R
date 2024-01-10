@@ -31,11 +31,18 @@ create.surv.prob.over.age.time <- function(age.classes, generation.time, nMx=NUL
 
     # Convert the fit to our ages
     survs[,t] <- 1-exp(predict(fit, age.classes/12)$y)
-    # gives me only the $y or estiamted m.x.n for age.classes/12 (puts age.classes in years rather than months)
+    # gives me only the $y or estimated m.x.n for age.classes/12 (puts age.classes in years rather than months)
     # for each age predict the survival rate based on the smooth.spline
     # exp to get back to m.x.n from it's previous log state and take 1-m.x.n to get survival rate
     #plot(survs)
 
+    if (any(survs[,t]<0)){
+      print(paste0("age-specific survival model fit producing NAs, see create.surv.prob.over.age.time() at time:", t))
+      if (t!=1) survs[,t] <-  survs[,(t-1)] #hack, use the previous year, return to later
+      if (t==1) { #hack if year 1 to use first non-negative
+        survs[which(survs[,t]<0),t] <-  survs[min(which(survs[,t]>0)),t]
+      }
+    }
     # Convert yearly rates to generation time rates
     survs[,t] <- 1+(log(survs[,t])/(1/generation.time.year))
 
