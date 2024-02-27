@@ -26,7 +26,7 @@ space.wrapper.get.schoolvacc.time.age.specific(
 
 \item{age.max}{vector, time specific maximum age eligible for school vaccination}
 
-\item{list.obj.vcdf}{list of vaccine.cdf.byage objects, each item is a subpop, age distribution of school vaccination}
+\item{list.obj.vcdf}{list of vaccine.cdf.byage objects, each item is a subpop, age distribution of school enrollment}
 
 \item{obj.prob.vsucc}{prob.vsucc.byage object, VE by age}
 }

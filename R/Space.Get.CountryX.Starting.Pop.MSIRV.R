@@ -81,7 +81,7 @@ Space.Get.CountryX.Starting.Pop.MSIRV <- function(uncode,
                                            #sia.vsucc =  new("vsucc.constant", success.rate=1),
                                            #introduction.rate = 0,
                                            n.subpops = n.subpops, #number of sub-populations
-                                           coupling = matrix(1, nrow=n.subpops, ncol=n.subpops))
+                                           coupling = coupling)
 
 
   ## Putting in starting state where everyone susceptible

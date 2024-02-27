@@ -23,7 +23,7 @@ scaleWAIFW.space <- function(R0, state, waifw, frequency.dep=F, suscept.state = 
 
   #just use first site (not whole pop)
   state.here <- DFE.state[state@epi.class==suscept.state,1][1:state@n.age.class]
-  if (frequency.dep) denom <- sum(state[,1]) else denom <- sum(state[1:(state@n.age.class*state@n.epi.class),1])
+  if (frequency.dep) denom <- sum(state.here) else denom <- 1
   #plot(state.here,type="l")
 
   #more correct

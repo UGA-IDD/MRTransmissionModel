@@ -45,7 +45,7 @@ Class for an experiment with changing vaccination coverage over time
 
 \item{\code{time.specific.max.age.schoolvacc}}{vector.}
 
-\item{\code{obj.vcdf.schoolvacc}}{list of vaccine.cdf.byage objects}
+\item{\code{obj.vcdf.schoolenroll}}{list of vaccine.cdf.byage objects}
 
 \item{\code{obj.prob.vsucc}}{prob.vsucc.byage.}
 

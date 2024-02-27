@@ -92,13 +92,13 @@ setMethod("next.ID.state",
             index.loc <-  tran@subpop.class.label[tran@i.inds]
             one.loc <- index.loc==1
 
-            #define the phi matrix - assume for now same matrix
             for (n in 1:tran@n.subpops) {
               this.loc <- index.loc==n
 
               #The vaccination logic
               age.spec.vacc.prob <- tran@vac.per@pvacc.in.age.class[this.loc]
 
+              ##Updating transition matrix to include vaccination
               #M->V transition
               tran.matrix[tran@v.inds[this.loc],tran@m.inds[one.loc]] <-  tran@age.surv.matrix[tran@v.inds[this.loc],tran@m.inds[one.loc]] *
                 age.spec.vacc.prob
@@ -119,24 +119,29 @@ setMethod("next.ID.state",
                 (1-age.spec.vacc.prob)
 
 
+              ## Calculate the phi matrix
               #define denominator of phi matrix - preventing NAs by setting min to 1
               if (tran@frequency.dep) {denom<-max(sum(state[tran@subpop.class.label==n]),1)} else {denom<-1}
 
-              phi <- (tran@waifw%*%(state[tran@i.inds[this.loc],]^tran@exponent))/denom
+              phi <- tran@waifw%*%(state[tran@i.inds[this.loc],]^tran@exponent)/denom
               phi <- 1 - exp(-phi)
-              phi <- matrix(phi, nrow=state@n.age.class ,
-                            ncol=state@n.age.class)
+              #hist(phi, breaks=20, xlim=c(0,1), main=n)
+              phi <- matrix(phi, nrow=state@n.age.class, ncol=state@n.age.class)
               phi <- t(phi)
 
               #print(c("phi",range(phi)))
 
-              #make susceptible part of matrix
+              ##Now that phi is calculated, update the tran matrix
+              #people who stay susceptible
               tran.matrix[tran@s.inds[this.loc], tran@s.inds[one.loc]] <-
                 tran.matrix[tran@s.inds[this.loc], tran@s.inds[one.loc]] * (1-phi)
 
-              #make infected part of matrix
+              #people who become infected
               tran.matrix[tran@i.inds[this.loc], tran@s.inds[one.loc]] <-
                 tran.matrix[tran@i.inds[this.loc], tran@s.inds[one.loc]] * (phi)
+
+              #no one stays infected
+              tran.matrix[tran@i.inds, tran@i.inds[one.loc]] <- 0
 
               #parametric fit
               #prop local susceptibility (age specific)
@@ -174,8 +179,7 @@ setMethod("next.ID.state",
               }
             }
 
-            #no one stays infected...
-            tran.matrix[tran@i.inds, tran@i.inds[one.loc]] <- 0
+
 
             #print(c(unique(tran.matrix)))
 

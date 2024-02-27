@@ -84,7 +84,7 @@ space.create.ID.transition.MSIRV <- function(n.age.class, #number of age classes
   low.age <-rep(c(0, age.class[2:length(age.class)-1]), n.subpops)
 
   #for each subpop and age class
-  for (j in 1:n.subpops) {
+  for (j in 1) { # (j in 1:n.subpops) #xxxamy tmp hack
     for (i in 1:(n.age.class)) {
       #first fill in the diagonal matrix
       tmp.template <- template.mtrx
@@ -101,8 +101,7 @@ space.create.ID.transition.MSIRV <- function(n.age.class, #number of age classes
         #people from the M class to the S class
         tmp.template <- template.mtrx
 
-        #calculate the probability of losing maternal protection during
-        #an age class
+        #calculate the probability of losing maternal protection duringan age class
         p.mat.loss <- (pmaternal(low.age[i], maternal.obj)-
                          pmaternal(age.class[i], maternal.obj))/pmaternal(low.age[i],maternal.obj)
         p.mat.loss[pmaternal(low.age[i],maternal.obj)==0] <- 1
@@ -115,6 +114,10 @@ space.create.ID.transition.MSIRV <- function(n.age.class, #number of age classes
         rc@age.surv.matrix[inds2,inds-adj] <- aging.rate[i]*survival.rate[j,i]*tmp.template
       }
     }
+  }
+  #xxxamy tmp hack
+  for (j in 1:n.subpops){
+    rc@age.surv.matrix[(1500*j-1499):(1500*j),1:1500] <- rc@age.surv.matrix[1:1500,1:1500]
   }
 
 

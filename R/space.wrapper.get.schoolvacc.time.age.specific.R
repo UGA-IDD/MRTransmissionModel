@@ -5,7 +5,7 @@
 #' @param space.time.specific.cov matrix, space (rows) and year (columns) specific school vaccination coverage as a proportion
 #' @param age.min vector, time specific minimum age eligible for school vaccination
 #' @param age.max vector, time specific maximum age eligible for school vaccination
-#' @param list.obj.vcdf list of vaccine.cdf.byage objects, each item is a subpop, age distribution of school vaccination
+#' @param list.obj.vcdf list of vaccine.cdf.byage objects, each item is a subpop, age distribution of school enrollment
 #' @param obj.prob.vsucc prob.vsucc.byage object, VE by age
 #'
 #' @return list, features specific to school vaccination, including age.time.specific.school.vaccination matrix which is age and space (rows) by year (cols) of proportion school vaccination

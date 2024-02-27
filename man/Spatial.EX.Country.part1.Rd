@@ -117,6 +117,10 @@ Spatial.EX.Country.part1(
 \item{n.subpops}{number of subpopulations}
 
 \item{coupling}{matrix of connectivity between subpopulations}
+
+\item{starting.prop.immune}{vector - starting proportion immune, length is length(starting.prop.immune.ages.in.months)*n.subpops}
+
+\item{starting.prop.immune.ages.in.months}{vector - the ages (in months) associated with starting.prop.immune}
 }
 \value{
 tran object and state.t0 after transients run out

@@ -55,6 +55,7 @@ Spatial.EX.Country.part1 <- function(uncode,
                                      coupling = matrix(1, nrow=n.subpops, ncol=n.subpops)) {
 
   tmp <- Space.Get.CountryX.Starting.Pop.MSIRV(uncode=uncode,
+                                               iso3code=iso3code,
                                                generation.time=generation.time,
                                                age.classes=age.classes,
                                                maternal.decay.rt=maternal.decay.rt,
@@ -134,11 +135,11 @@ Spatial.EX.Country.part1 <- function(uncode,
   #plot(res@result)
 
   # Reset
-  age.struct.1991 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
-  age.struc.sim <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
+  age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.tmax <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
   for (s in 1:n.subpops){
-    prop.struc.sim <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.sim[s,], each=5)
-    tmp <- rep(age.struct.1991[s,], each=5)*prop.struc.sim
+    prop.struc.tmax <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
+    tmp <- rep(age.struc.t0[s,], each=5)*prop.struc.tmax
     if (s==1) new.state <- tmp
     if (s!=1) new.state <- c(new.state, tmp)
   }
@@ -149,11 +150,11 @@ Spatial.EX.Country.part1 <- function(uncode,
   #plot(res@result)
 
   # Reset
-  age.struct.1991 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
-  age.struc.sim <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
+  age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.tmax <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
   for (s in 1:n.subpops){
-    prop.struc.sim <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.sim[s,], each=5)
-    tmp <- rep(age.struct.1991[s,], each=5)*prop.struc.sim
+    prop.struc.tmax <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
+    tmp <- rep(age.struc.t0[s,], each=5)*prop.struc.tmax
     if (s==1) new.state <- tmp
     if (s!=1) new.state <- c(new.state, tmp)
   }
@@ -164,11 +165,11 @@ Spatial.EX.Country.part1 <- function(uncode,
   plot(res@result)
 
   # Reset
-  age.struct.1991 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
-  age.struc.sim <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
+  age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
+  age.struc.tmax <- space.wrapper.GetNumber.per.AgeGroup(state=matrix(res@result@.Data[,ncol(res@result@.Data)],ncol=1), trans=EX@trans)
   for (s in 1:n.subpops){
-    prop.struc.sim <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.sim[s,], each=5)
-    tmp <- rep(age.struct.1991[s,], each=5)*prop.struc.sim
+    prop.struc.tmax <- res@result[res@experiment.def@trans@subpop.class.label==s,ncol(res@result)]/rep(age.struc.tmax[s,], each=5)
+    tmp <- rep(age.struc.t0[s,], each=5)*prop.struc.tmax
     if (s==1) new.state <- tmp
     if (s!=1) new.state <- c(new.state, tmp)
   }

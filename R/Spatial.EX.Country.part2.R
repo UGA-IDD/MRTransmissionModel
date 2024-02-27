@@ -10,32 +10,36 @@
 #' @param rescale.WAIFW logical
 #' @param yr.births.per.1000.acrossyears.bysupop vector of length(t.max) - crude birth rate per 1000 per year
 #' @param space.asdr.object space nMx object - with rate and mid-age (age specific death rates)
-#' @param year year
-#' @param EXt0 xxx
-#' @param time.specific.MR1cov xxx
-#' @param time.specific.MR2cov xxx
-#' @param time.specific.SIAcov xxx
-#' @param time.specific.min.age.MR1 xxx
-#' @param time.specific.max.age.MR1 xxx
-#' @param time.specific.min.age.MR2 xxx
-#' @param time.specific.max.age.MR2 xxx
-#' @param time.specific.min.age.SIA xxx
-#' @param time.specific.max.age.SIA xxx
-#' @param obj.vcdf.MR1 xxx
-#' @param obj.vcdf.MR2 xxx
-#' @param obj.prob.vsucc xxx
-#' @param sia.timing.in.year xxx
-#' @param MR1MR2correlation xxx
-#' @param MR1SIAcorrelation xxx
-#' @param MR2SIAcorrelation xxx
-#' @param SIAinacc xxx
-#' @param prop.inacc xxx
-#' @param SIAinefficient xxx
+#' @param year numeric - start year
+#' @param EXt0 object from part1
+#' @param time.specific.MR1cov - numeric matrix
+#' @param time.specific.MR2cov - numeric matrix
+#' @param time.specific.SIAcov - numeric matrix
+#' @param time.specific.schoolvacc.cov - numeric matrix
+#' @param time.specific.min.age.MR1 - numeric vector
+#' @param time.specific.max.age.MR1 - numeric vector
+#' @param time.specific.min.age.MR2 - numeric vector
+#' @param time.specific.max.age.MR2 - numeric vector
+#' @param time.specific.min.age.SIA - numeric vector
+#' @param time.specific.max.age.SIA - numeric vector
+#' @param time.specific.min.age.schoolvacc - numeric vector
+#' @param time.specific.max.age.schoolvacc - numeric vector
+#' @param obj.vcdf.MR1 - object
+#' @param obj.vcdf.MR2 - object
+#' @param list.obj.vcdf.schoolenroll - list of objects
+#' @param obj.prob.vsucc - object
+#' @param sia.timing.in.year - numeric scalar
+#' @param schoolvacc.timing.in.year - numeric scalar
+#' @param MR1MR2correlation - NULL or not
+#' @param MR1SIAcorrelation - NULL or not
+#' @param MR2SIAcorrelation - NULL or not
+#' @param SIAinacc - xxx
+#' @param prop.inacc - xxx
+#' @param SIAinefficient - xxx
 #'
-#' @return experiment results
+#' @return experiment result
 #' @export
 #'
-
 Spatial.EX.Country.part2 <- function(uncode,
                                      generation.time = 0.5, #generation time in months
                                      pop.rescale=NULL,
@@ -62,7 +66,7 @@ Spatial.EX.Country.part2 <- function(uncode,
                                      time.specific.max.age.schoolvacc,
                                      obj.vcdf.MR1 = get.vcdf.normal(6, 12),
                                      obj.vcdf.MR2 = get.vcdf.normal(15, 21),
-                                     list.obj.vcdf.schoolvacc,
+                                     list.obj.vcdf.schoolenroll,
                                      obj.prob.vsucc = pvacsuccess(1:(20*12), get.boulianne.vsucc()),
                                      sia.timing.in.year = (3/12),
                                      schoolvacc.timing.in.year = (9/12),
@@ -75,9 +79,9 @@ Spatial.EX.Country.part2 <- function(uncode,
 
 
   ## Changing experiment type
-  if (is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange.spatial") #default
-  if (!is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial")
-  if (!is.null(time.specific.schoolvacc.cov)) EX <- new("experiment.updatedemog.vaccinationchange.school.spatial")
+  if (is.null(time.specific.schoolvacc.cov)) EX <- new("experiment.updatedemog.vaccinationchange.spatial") #hard coded MR1 and MR2 dependent
+  if (!is.null(time.specific.schoolvacc.cov)) EX <- new("experiment.updatedemog.vaccinationchange.school.spatial") #hard coded MR1 and MR2 dependent
+  #if (!is.null(MR1MR2correlation)) EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatial") #this experiment is not set up yet
 
   ## Country name
   name <- countrycode::countrycode(uncode, origin="un", destination="country.name")
@@ -109,13 +113,13 @@ Spatial.EX.Country.part2 <- function(uncode,
   EX@pop.rescale.each.timestep <- matrix(NaN, EX@trans@n.subpops, no.time.steps.in.experiment)
   if (!is.null(pop.rescale)) { #if pop.rescale is not NULL fill in the pops to rescale at mid-year
     for (p in 1:ncol(pop.rescale)){
-      EX@pop.rescale.each.timestep[,pop.time[p]*no.gens.in.year-1] <- pop.rescale[,p] #rescalling at end of previous year
+      EX@pop.rescale.each.timestep[,(pop.time[p]*no.gens.in.year-1)] <- pop.rescale[,p] #rescalling at end of previous year
     }
   }
 
   # Setting up changing birth rates
   EX@births.per.1000.each.timestep <- cbind(yr.births.per.1000.acrossyears.bysupop[,1],
-                                            matrix(rep(yr.births.per.1000.acrossyears.bysupop, each = no.gens.in.year), byrow=T, nrow=EX@trans@n.subpops))*generation.time/12
+                                            matrix(rep(t(yr.births.per.1000.acrossyears.bysupop), each = no.gens.in.year), byrow=T, nrow=EX@trans@n.subpops))*generation.time/12
 
   # Setting up survival
   EX@surv.each.timestep <- space.wrapper.surv.prob.over.age.time(EX@trans@age.class, generation.time, space.nMx=space.asdr.object, years.interpolate =seq(year,(year+t.max-1),1)) #xxamy minus 1 to get correct number of time steps
@@ -148,7 +152,7 @@ Spatial.EX.Country.part2 <- function(uncode,
     EX@time.specific.schoolvacc.cov =  time.specific.schoolvacc.cov #matrix annual coverage values by space (rows) and years 1980-2100 (cols)
     EX@time.specific.min.age.schoolvacc = time.specific.min.age.schoolvacc
     EX@time.specific.max.age.schoolvacc = time.specific.max.age.schoolvacc
-    EX@list.obj.vcdf.schoolvacc <- list.obj.vcdf.schoolvacc
+    EX@list.obj.vcdf.schoolenroll <- list.obj.vcdf.schoolenroll
     EX@schoolvacc.timing.in.year <- schoolvacc.timing.in.year
   }
 

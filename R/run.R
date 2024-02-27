@@ -547,7 +547,7 @@ setMethod("run",
 
 
 # Run method for experiment.updatedemog.vaccinationchange.spatial objects
-
+# note: hard coded (MR1MR2correlation=T) assumes MR1 and MR2 dependent
 #' @rdname run-methods
 #' @aliases run,experiment.updatedemog.vaccinationchange.spatial,ANY-method
 setMethod("run",
@@ -603,7 +603,7 @@ setMethod("run",
                                                                    obj.vcdf.MR1=exper@obj.vcdf.MR1,
                                                                    obj.vcdf.MR2=exper@obj.vcdf.MR2,
                                                                    obj.prob.vsucc=exper@obj.prob.vsucc,
-                                                                   MR1MR2correlation=F)
+                                                                   MR1MR2correlation=T)
 
             #getting year of routine introductions
             routine.intro <- rep(0, T)
@@ -669,18 +669,17 @@ setMethod("run",
               births.each.timestep[,t] <-  tmp.trans@birth.rate
 
               #put in time appropriate survival rate otherwise it uses original surv.matrix set up for trans object and keeps constant over time
-              if (!is.na(exper@surv.each.timestep[1,1])) {
-                for (s in 1:n.subpops) {
-                  last.index.tmp1 <- (s*exper@trans@n.age.class)
-                  first.index.tmp1 <- last.index.tmp1-(exper@trans@n.age.class)+1
-                  tmp.age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(tmp.trans=tmp.trans, maternal.obj=exper@maternal.obj,
-                                                                          surv.at.timestep.t=exper@surv.each.timestep[first.index.tmp1:last.index.tmp1,t])
-
-                  last.index.tmp2 <- (s*exper@trans@n.epi.class*exper@trans@n.age.class)
-                  first.index.tmp2 <- last.index.tmp2-(exper@trans@n.epi.class*exper@trans@n.age.class)+1
-                  tmp.trans@age.surv.matrix[first.index.tmp2:last.index.tmp2,] <- tmp.age.surv.matrix
-                }
-              }
+              #if (!is.na(exper@surv.each.timestep[1,1])) {
+              #  for (s in 1:n.subpops) {
+              #    last.index.tmp1 <- (s*exper@trans@n.age.class)
+              #    first.index.tmp1 <- last.index.tmp1-(exper@trans@n.age.class)+1
+              #    tmp.age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(tmp.trans=tmp.trans, maternal.obj=exper@maternal.obj,
+              #                                                            surv.at.timestep.t=exper@surv.each.timestep[first.index.tmp1:last.index.tmp1,t])
+              #    last.index.tmp2 <- (s*exper@trans@n.epi.class*exper@trans@n.age.class)
+              #    first.index.tmp2 <- last.index.tmp2-(exper@trans@n.epi.class*exper@trans@n.age.class)+1
+              #    tmp.trans@age.surv.matrix[first.index.tmp2:last.index.tmp2,] <- tmp.age.surv.matrix
+              #  }
+              #}
 
               ##put in correct vaccination coverage
               for (s in 1:n.subpops) {
@@ -848,18 +847,17 @@ setMethod("run",
               births.each.timestep[,t] <-  tmp.trans@birth.rate
 
               #put in time appropriate survival rate otherwise it uses original surv.matrix set up for trans object and keeps constant over time
-              if (!is.na(exper@surv.each.timestep[1,1])) {
-                for (s in 1:n.subpops) {
-                  last.index.tmp1 <- (s*exper@trans@n.age.class)
-                  first.index.tmp1 <- last.index.tmp1-(exper@trans@n.age.class)+1
-                  tmp.age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(tmp.trans=tmp.trans, maternal.obj=exper@maternal.obj,
-                                                                          surv.at.timestep.t=exper@surv.each.timestep[first.index.tmp1:last.index.tmp1,t])
-
-                  last.index.tmp2 <- (s*exper@trans@n.epi.class*exper@trans@n.age.class)
-                  first.index.tmp2 <- last.index.tmp2-(exper@trans@n.epi.class*exper@trans@n.age.class)+1
-                  tmp.trans@age.surv.matrix[first.index.tmp2:last.index.tmp2,] <- tmp.age.surv.matrix
-                }
-              }
+              #if (!is.na(exper@surv.each.timestep[1,1])) {
+              #  for (s in 1:n.subpops) {
+              #    last.index.tmp1 <- (s*exper@trans@n.age.class)
+              #    first.index.tmp1 <- last.index.tmp1-(exper@trans@n.age.class)+1
+              #    tmp.age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(tmp.trans=tmp.trans, maternal.obj=exper@maternal.obj,
+              #                                                            surv.at.timestep.t=exper@surv.each.timestep[first.index.tmp1:last.index.tmp1,t])
+              #    last.index.tmp2 <- (s*exper@trans@n.epi.class*exper@trans@n.age.class)
+              #    first.index.tmp2 <- last.index.tmp2-(exper@trans@n.epi.class*exper@trans@n.age.class)+1
+              #    tmp.trans@age.surv.matrix[first.index.tmp2:last.index.tmp2,] <- tmp.age.surv.matrix
+              #  }
+              #}
 
               #stow the previous population size
               for (s in 1:n.subpops) {
@@ -923,7 +921,7 @@ setMethod("run",
 
 
 # Run method for experiment.updatedemog.vaccinationchange.spatial.schoolvaccination objects
-
+# note: hard coded (MR1MR2correlation=T) assumes MR1 and MR2 dependent
 #' @rdname run-methods
 #' @aliases run,experiment.updatedemog.vaccinationchange.spatial,schoolvaccination,ANY-method
 setMethod("run",
@@ -979,7 +977,7 @@ setMethod("run",
                                                                    obj.vcdf.MR1=exper@obj.vcdf.MR1,
                                                                    obj.vcdf.MR2=exper@obj.vcdf.MR2,
                                                                    obj.prob.vsucc=exper@obj.prob.vsucc,
-                                                                   MR1MR2correlation=F)
+                                                                   MR1MR2correlation=T)
 
             #getting year of routine introductions
             routine.intro <- rep(0, T)
@@ -1008,14 +1006,14 @@ setMethod("run",
                                                                                          space.time.specific.cov=exper@time.specific.schoolvacc.cov,
                                                                                          age.min=exper@time.specific.min.age.schoolvacc,
                                                                                          age.max=exper@time.specific.max.age.schoolvacc,
-                                                                                         list.obj.vcdf=exper@list.obj.vcdf.schoolvacc,
-                                                                                         obj.prob.vsucc=exper@obj.prob.vsucc.schoolvacc)
+                                                                                         list.obj.vcdf=exper@list.obj.vcdf.schoolenroll,
+                                                                                         obj.prob.vsucc=exper@obj.prob.vsucc)
 
             #getting school.vaccination.times as a vector of 0 / 1 to represent when the SIA is to take place
             index.school.vacc <- rep(NA,T)
             year.schoolvacc <- which(colSums(exper@time.specific.schoolvacc.cov)!=0)
-            year.schoolvacc[(year.schoolvacc-1)*(T-1)/exper@t.max + round((exper@schoolvacc.timing.in.year*(T-1)/exper@t.max))] <-  year.schoolvacc #minus 1 because adding the sia.timing
-            schoolvacc.times <- ifelse(!is.na(year.schoolvacc), 1, 0)
+            index.school.vacc[(year.schoolvacc-1)*(T-1)/exper@t.max + round((exper@schoolvacc.timing.in.year*(T-1)/exper@t.max))] <-  year.schoolvacc #minus 1 because adding the sia.timing
+            schoolvacc.times <- ifelse(!is.na(index.school.vacc), 1, 0)
 
 
             #need output vectors for primary vaccination failure over time
@@ -1062,18 +1060,17 @@ setMethod("run",
               births.each.timestep[,t] <-  tmp.trans@birth.rate
 
               #put in time appropriate survival rate otherwise it uses original surv.matrix set up for trans object and keeps constant over time
-              if (!is.na(exper@surv.each.timestep[1,1])) {
-                for (s in 1:n.subpops) {
-                  last.index.tmp1 <- (s*exper@trans@n.age.class)
-                  first.index.tmp1 <- last.index.tmp1-(exper@trans@n.age.class)+1
-                  tmp.age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(tmp.trans=tmp.trans, maternal.obj=exper@maternal.obj,
-                                                                          surv.at.timestep.t=exper@surv.each.timestep[first.index.tmp1:last.index.tmp1,t])
-
-                  last.index.tmp2 <- (s*exper@trans@n.epi.class*exper@trans@n.age.class)
-                  first.index.tmp2 <- last.index.tmp2-(exper@trans@n.epi.class*exper@trans@n.age.class)+1
-                  tmp.trans@age.surv.matrix[first.index.tmp2:last.index.tmp2,] <- tmp.age.surv.matrix
-                }
-              }
+              #if (!is.na(exper@surv.each.timestep[1,1])) {
+              #  for (s in 1:n.subpops) {
+              #    last.index.tmp1 <- (s*exper@trans@n.age.class)
+              #    first.index.tmp1 <- last.index.tmp1-(exper@trans@n.age.class)+1
+              #    tmp.age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(tmp.trans=tmp.trans, maternal.obj=exper@maternal.obj,
+              #                                                            surv.at.timestep.t=exper@surv.each.timestep[first.index.tmp1:last.index.tmp1,t])
+              #    last.index.tmp2 <- (s*exper@trans@n.epi.class*exper@trans@n.age.class)
+              #    first.index.tmp2 <- last.index.tmp2-(exper@trans@n.epi.class*exper@trans@n.age.class)+1
+              #    tmp.trans@age.surv.matrix[first.index.tmp2:last.index.tmp2,] <- tmp.age.surv.matrix
+              #  }
+              #}
 
               ##put in correct vaccination coverage
               for (s in 1:n.subpops) {
@@ -1082,9 +1079,9 @@ setMethod("run",
 
                 routine.vacc.prob <- routine$age.time.specific.routine[first.index.tmp:last.index.tmp,]
                 sia.vacc.prob <- SIA$age.time.specific.SIA[first.index.tmp:last.index.tmp,]
-                school.vacc.prob <- schoolvacc$age.time.specific.SIA[first.index.tmp:last.index.tmp,]
+                school.vacc.prob <- schoolvacc$age.time.specific.schoolvacc[first.index.tmp:last.index.tmp,]
 
-                if (!is.na(index.sia.vacc[t]) & is.na(index.school.vacc)){ #if SIA and no school vacc
+                if (!is.na(index.sia.vacc[t]) & is.na(index.school.vacc[t])){ #if SIA and no school vacc
                   tmp.trans@vac.per@pvacc.in.age.class[first.index.tmp:last.index.tmp] <-
                     routine.vacc.prob[,index.routine.vacc[t]] +
                     sia.vacc.prob[,index.sia.vacc[t]] -
@@ -1094,14 +1091,14 @@ setMethod("run",
                   MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[s,index.routine.vacc[t]]
                   SIA.fail.each.timestep[t] <- SIA$prop.fail.SIA[s,index.sia.vacc[t]]
 
-                } else if ((is.na(index.sia.vacc[t]) & is.na(index.school.vacc))) { #if no SIA AND no school vacc
+                } else if ((is.na(index.sia.vacc[t]) & is.na(index.school.vacc[t]))) { #if no SIA AND no school vacc
                   tmp.trans@vac.per@pvacc.in.age.class[first.index.tmp:last.index.tmp] <-
                     routine.vacc.prob[,index.routine.vacc[t]]
                   #stow output
                   MR1.fail.each.timestep[t] <- routine$prop.fail.MR1[s,index.routine.vacc[t]]
                   MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[s,index.routine.vacc[t]]
 
-                } else if (is.na(index.sia.vacc[t]) & !is.na(index.school.vacc)) {#if no SIA and school vacc
+                } else if (is.na(index.sia.vacc[t]) & !is.na(index.school.vacc[t])) {#if no SIA and school vacc
                   tmp.trans@vac.per@pvacc.in.age.class[first.index.tmp:last.index.tmp] <-
                     routine.vacc.prob[,index.routine.vacc[t]] +
                     school.vacc.prob[,index.school.vacc[t]] -
@@ -1111,7 +1108,7 @@ setMethod("run",
                   MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[s,index.routine.vacc[t]]
                   schoolvacc.fail.each.timestep[t] <- schoolvacc$prop.fail.schoolvacc[s,index.school.vacc[t]]
 
-                } else if (!is.na(index.sia.vacc[t]) & !is.na(index.school.vacc)){ #if SIA and school vacc
+                } else if (!is.na(index.sia.vacc[t]) & !is.na(index.school.vacc[t])){ #if SIA and school vacc
                   routine.sia.tmp <-  routine.vacc.prob[,index.routine.vacc[t]] +
                     sia.vacc.prob[,index.sia.vacc[t]] - (routine.vacc.prob[,index.routine.vacc[t]]*sia.vacc.prob[,index.sia.vacc[t]])
                   tmp.trans@vac.per@pvacc.in.age.class[first.index.tmp:last.index.tmp] <-

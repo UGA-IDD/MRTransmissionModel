@@ -553,7 +553,7 @@ setClass("experiment.updatedemog.vaccinationchange.spatial",
 #' @slot time.specific.schoolvacc.cov vector.
 #' @slot time.specific.min.age.schoolvacc vector.
 #' @slot time.specific.max.age.schoolvacc vector.
-#' @slot obj.vcdf.schoolvacc list of vaccine.cdf.byage objects
+#' @slot obj.vcdf.schoolenroll list of vaccine.cdf.byage objects
 #' @slot obj.prob.vsucc prob.vsucc.byage.
 #' @slot schoolvacc.timing.in.year vector.
 #'
@@ -564,7 +564,7 @@ setClass("experiment.updatedemog.vaccinationchange.school",
          slots = list(time.specific.schoolvacc.cov = "ANY",
                       time.specific.min.age.schoolvacc = "ANY",
                       time.specific.max.age.schoolvacc = "ANY",
-                      obj.vcdf.schoolvacc = "vaccine.cdf.byage",
+                      obj.vcdf.schoolenroll = "vaccine.cdf.byage",
                       obj.prob.vsucc = "prob.vsucc.byage",
                       schoolvacc.timing.in.year = "ANY"),
          contains=c("experiment.updatedemog.vaccinationchange"))
@@ -579,7 +579,7 @@ setClass("experiment.updatedemog.vaccinationchange.school",
 #' @rdname experiment.updatedemog.vaccinationchange.spatial-class
 setClass("experiment.updatedemog.vaccinationchange.school.spatial",
          slots = list(trans = "ID.transition.MSIRV.space",
-                      list.obj.vcdf.schoolvacc = "ANY"), #--xxamy changed to "ANY" because it is a list of vaccine.cdf.byage objects
+                      list.obj.vcdf.schoolenroll = "ANY"), #--xxamy changed to "ANY" because it is a list of vaccine.cdf.byage objects
          contains=c("experiment.updatedemog.vaccinationchange.school"))
 
 
@@ -777,7 +777,7 @@ setClass("space.nMx",
 #'
 #' @export
 #' @docType class
-#' @rdname sim.results.MSIRV.update.demog.vaccine.change.space-class
+#' @rdname sim.results.MSIRV.update.demog.vaccine.change.space.school-class
 setClass("sim.results.MSIRV.update.demog.vaccine.change.space.school",
          representation(schoolvacc.fail.each.timestep = "ANY" #the number of births per time step as output from simulation
            ),

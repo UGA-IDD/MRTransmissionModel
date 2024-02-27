@@ -11,7 +11,8 @@ space.wrapper.GetNumber.per.AgeGroup <- function(trans, state){
   for (s in 1:trans@n.subpops){
     trans.tmp <- trans
     trans.tmp@epi.class <- trans.tmp@epi.class[trans@subpop.class.label==s]
-    tmp <- GetNumber.per.AgeGroup(trans.tmp, state[trans@subpop.class.label==s,1])
+    if (is.vector(state)) tmp <- GetNumber.per.AgeGroup(trans.tmp, state[trans@subpop.class.label==s])
+    if (is.matrix(state)) tmp <- GetNumber.per.AgeGroup(trans.tmp, state[trans@subpop.class.label==s,1])
     if (s==1) out <- tmp
     if (s!=1) out <- rbind(out, tmp)
   }

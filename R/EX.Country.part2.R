@@ -113,7 +113,8 @@ EX.Country.part2 <- function(uncode,
   }
 
   # Setting up changing birth rates
-  EX@births.per.1000.each.timestep <- c(yr.births.per.1000.acrossyears[1], rep(yr.births.per.1000.acrossyears, each=no.gens.in.year))*generation.time/12
+  EX@births.per.1000.each.timestep <- c(as.numeric(yr.births.per.1000.acrossyears[1]),
+                                        rep(as.numeric(yr.births.per.1000.acrossyears), each=no.gens.in.year))*generation.time/12
 
   # Setting up survival
   EX@surv.each.timestep <- create.surv.prob.over.age.time(EX@trans@age.class, generation.time, nMx=asdr.object, nMx.years=seq(year,(year+t.max-1),1)) #xxamny minus 1 to get correct number of tie steps

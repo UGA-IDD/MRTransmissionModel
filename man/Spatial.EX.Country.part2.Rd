@@ -31,7 +31,7 @@ Spatial.EX.Country.part2(
   time.specific.max.age.schoolvacc,
   obj.vcdf.MR1 = get.vcdf.normal(6, 12),
   obj.vcdf.MR2 = get.vcdf.normal(15, 21),
-  list.obj.vcdf.schoolvacc,
+  list.obj.vcdf.schoolenroll,
   obj.prob.vsucc = pvacsuccess(1:(20 * 12), get.boulianne.vsucc()),
   sia.timing.in.year = (3/12),
   schoolvacc.timing.in.year = (9/12),
@@ -64,50 +64,60 @@ Spatial.EX.Country.part2(
 
 \item{space.asdr.object}{space nMx object - with rate and mid-age (age specific death rates)}
 
-\item{year}{year}
+\item{year}{numeric - start year}
 
-\item{EXt0}{xxx}
+\item{EXt0}{object from part1}
 
-\item{time.specific.MR1cov}{xxx}
+\item{time.specific.MR1cov}{- numeric matrix}
 
-\item{time.specific.MR2cov}{xxx}
+\item{time.specific.MR2cov}{- numeric matrix}
 
-\item{time.specific.SIAcov}{xxx}
+\item{time.specific.SIAcov}{- numeric matrix}
 
-\item{time.specific.min.age.MR1}{xxx}
+\item{time.specific.schoolvacc.cov}{- numeric matrix}
 
-\item{time.specific.max.age.MR1}{xxx}
+\item{time.specific.min.age.MR1}{- numeric vector}
 
-\item{time.specific.min.age.MR2}{xxx}
+\item{time.specific.max.age.MR1}{- numeric vector}
 
-\item{time.specific.max.age.MR2}{xxx}
+\item{time.specific.min.age.MR2}{- numeric vector}
 
-\item{time.specific.min.age.SIA}{xxx}
+\item{time.specific.max.age.MR2}{- numeric vector}
 
-\item{time.specific.max.age.SIA}{xxx}
+\item{time.specific.min.age.SIA}{- numeric vector}
 
-\item{obj.vcdf.MR1}{xxx}
+\item{time.specific.max.age.SIA}{- numeric vector}
 
-\item{obj.vcdf.MR2}{xxx}
+\item{time.specific.min.age.schoolvacc}{- numeric vector}
 
-\item{obj.prob.vsucc}{xxx}
+\item{time.specific.max.age.schoolvacc}{- numeric vector}
 
-\item{sia.timing.in.year}{xxx}
+\item{obj.vcdf.MR1}{- object}
 
-\item{MR1MR2correlation}{xxx}
+\item{obj.vcdf.MR2}{- object}
 
-\item{MR1SIAcorrelation}{xxx}
+\item{list.obj.vcdf.schoolenroll}{- list of objects}
 
-\item{MR2SIAcorrelation}{xxx}
+\item{obj.prob.vsucc}{- object}
 
-\item{SIAinacc}{xxx}
+\item{sia.timing.in.year}{- numeric scalar}
 
-\item{prop.inacc}{xxx}
+\item{schoolvacc.timing.in.year}{- numeric scalar}
 
-\item{SIAinefficient}{xxx}
+\item{MR1MR2correlation}{- NULL or not}
+
+\item{MR1SIAcorrelation}{- NULL or not}
+
+\item{MR2SIAcorrelation}{- NULL or not}
+
+\item{SIAinacc}{- xxx}
+
+\item{prop.inacc}{- xxx}
+
+\item{SIAinefficient}{- xxx}
 }
 \value{
-experiment results
+experiment result
 }
 \description{
 Function to Run the SPATIAL Simulations/Experiments

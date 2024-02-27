@@ -10,6 +10,7 @@
 #'
 space.getDemography <- function(age.classes, iso3code){
 
+  library(schoolentrydataZambia)
   zamb_data <- schoolentrydataZambia::getDemography(iso3code)
   subpop.names <- zamb_data$pop.total.1950.2100 %>% arrange(district) %>% pull(district)
 
