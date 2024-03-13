@@ -20,7 +20,7 @@ GetRubellaSeroprevalence.per.Year <- function(res, trans, epi.state, no.gens.in.
   }
 
   #sum over each year
-  sus.pop <- sus.age[,seq(12,ncol(res),no.gens.in.year)] #number of susceptibles at mid-year
+  sus.pop <- sus.age[,seq(floor(no.gens.in.year/2),ncol(res),no.gens.in.year)] #number of susceptibles at mid-year
   pop <- GetPop.per.Year(res, trans, no.gens.in.year) #population at mid-year
 
   seroprev.age <- 1-(sus.pop/pop)

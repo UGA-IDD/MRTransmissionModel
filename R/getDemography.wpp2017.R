@@ -42,6 +42,11 @@ getDemography.wpp2017 <- function(uncode=NA, age.classes=c(1:101),
       cc <- pop$country_code[tolower(pop$name)==tolower(region)]
       print(paste("No UNPD data for uncode ", uncode, "; using region ", region, " instead", sep=""))
     }
+    if (uncode == 212) { #Dominica
+      region <- "LATIN AMERICA AND THE CARIBBEAN"
+      cc <- pop$country_code[tolower(pop$name)==tolower(region)]
+      print(paste("No UNPD data for uncode ", uncode, "; using region ", region, " instead", sep=""))
+    }
   } else {
     print(paste("No UNPD data for uncode ", uncode, "; NAs produced", sep=""))
     pop.total.1950.2100=NA

@@ -10,7 +10,7 @@
 
 GetPop.per.Year <- function(res, trans, no.gens.in.year){
 
-  mid.year.index <- seq(13,ncol(res)-1, no.gens.in.year) #mid-year every year
+  mid.year.index <- seq(floor(no.gens.in.year/2),ncol(res)-1, no.gens.in.year) #mid-year every year
   pop.year <- matrix(NA, 101, length(mid.year.index))
   for (i in 1:length(mid.year.index)){
     t <- mid.year.index[i]

@@ -182,6 +182,8 @@ setMethod("run",
             if (any(exper@time.specific.MR1cov!=0)) routine.intro[min(which(exper@time.specific.MR1cov>0))*(1/exper@step.size)+1] <- 1
             if (any(exper@time.specific.MR2cov!=0)) routine.intro[min(which(exper@time.specific.MR2cov>0))*(1/exper@step.size)+1] <- 1
             index.routine.vacc <- c(1,rep(1:nrow(routine$age.time.specific.routine), each=(numTimeSteps-1)/exper@t.max))
+            if (length(index.routine.vacc)<numTimeSteps) index.routine.vacc[(length(index.routine.vacc)+1):numTimeSteps] <- index.routine.vacc[length(index.routine.vacc)]
+
             SIA <- get.sia.time.age.specific(age.classes=exper@trans@age.class,
                                              time.specific.SIAcov=exper@time.specific.SIAcov,
                                              age.min.sia=exper@time.specific.min.age.SIA,
@@ -353,6 +355,8 @@ setMethod("run",
             if (any(exper@time.specific.MR1cov!=0)) routine.intro[min(which(exper@time.specific.MR1cov>0))*(1/exper@step.size)+1] <- 1
             if (any(exper@time.specific.MR2cov!=0)) routine.intro[min(which(exper@time.specific.MR2cov>0))*(1/exper@step.size)+1] <- 1
             index.routine.vacc <- c(1,rep(1:nrow(routine$age.time.specific.routine), each=(numTimeSteps-1)/exper@t.max))
+            if (length(index.routine.vacc)<numTimeSteps) index.routine.vacc[(length(index.routine.vacc)+1):numTimeSteps] <- index.routine.vacc[length(index.routine.vacc)]
+
             SIA <- get.sia.time.age.specific(age.classes=exper@trans@age.class,
                                              time.specific.SIAcov=exper@time.specific.SIAcov,
                                              age.min.sia=exper@time.specific.min.age.SIA,
@@ -612,6 +616,7 @@ setMethod("run",
 
             #specifying that each year (column) of routine should be repeated 24 times
             index.routine.vacc <- c(1,rep(1:ncol(routine$age.time.specific.routine), each=(T-1)/exper@t.max))
+            if (length(index.routine.vacc)<T) index.routine.vacc[(length(index.routine.vacc)+1):T] <- index.routine.vacc[length(index.routine.vacc)]
 
             #generate the age and space (rows) and year (columns) specific vaccination matrix - same size as `routine`
             SIA <- space.wrapper.get.sia.time.age.specific(age.classes=exper@trans@age.class,
@@ -988,6 +993,7 @@ setMethod("run",
 
             #specifying that each year (column) of routine should be repeated 24 times
             index.routine.vacc <- c(1,rep(1:ncol(routine$age.time.specific.routine), each=(T-1)/exper@t.max))
+            if (length(index.routine.vacc)<T) index.routine.vacc[(length(index.routine.vacc)+1):T] <- index.routine.vacc[length(index.routine.vacc)]
 
             #generate the age and space (rows) and year (columns) specific vaccination matrix - same size as `routine`
             SIA <- space.wrapper.get.sia.time.age.specific(age.classes=exper@trans@age.class,
