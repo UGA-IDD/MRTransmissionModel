@@ -1,6 +1,6 @@
 ## Amy Winter
 ## Issue - space.create.ID.transition.MSIRV() takes way too long
-## This is an attempt to vectorize the nested loops. I was successful at getting diagnoal values and indeces, when in line 158 it wasn't allowing me to input
+## This is an attempt to vectorize the nested loops. I was successful at getting diagonal values and indexes, when in line 158 it wasn't allowing me to input
 ## due to the type of object.  Also, I never did it for the off (i.e, bottom) diagonals
 
 

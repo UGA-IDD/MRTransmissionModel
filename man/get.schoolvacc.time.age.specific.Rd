@@ -10,27 +10,27 @@ get.schoolvacc.time.age.specific(
   time.specific.cov = rep(0.6, 50),
   age.min = rep(12, 50),
   age.max = rep(23, 50),
-  obj.vcdf = get.vcdf.uniform(12, 23),
+  obj.vcdf = get.vcdf.uniform(36, 12 * 15),
   obj.prob.vsucc = pvacsuccess(1:(14 * 12), new("vsucc.constant", success.rate = 0.8))
 )
 }
 \arguments{
-\item{time.step}{xxx}
+\item{time.step}{numeric - in months}
 
-\item{age.classes}{xxx}
+\item{age.classes}{vector - in months}
 
-\item{time.specific.cov}{xxx}
+\item{time.specific.cov}{vector}
 
-\item{age.min}{xxx}
+\item{age.min}{vector - in months}
 
-\item{age.max}{xxx}
+\item{age.max}{vector - in months}
 
-\item{obj.vcdf}{xxx}
+\item{obj.vcdf}{object}
 
-\item{obj.prob.vsucc}{xxx}
+\item{obj.prob.vsucc}{object}
 }
 \value{
-list for routine time
+list for school enrollment vaccination by age and time
 }
 \description{
 Get School Vaccination time age-specific

@@ -1,4 +1,4 @@
-#' Function to set up SPATIAL experiment and run the transients out
+#' Function to set up SPATIAL experiment given starting immune population
 #'
 #' @param uncode UN country code
 #' @param iso3code character iso3 code to matches uncode
@@ -27,12 +27,13 @@
 #' @param coupling matrix of connectivity between subpopulations
 #' @param starting.prop.immune vector - starting proportion immune, length is length(starting.prop.immune.ages.in.months)*n.subpops
 #' @param starting.prop.immune.ages.in.months vector - the ages (in months) associated with starting.prop.immune
+#' @param max.immunity - numeric
 #'
 #' @return tran object and state.t0 after transients run out
 #' @export
 #'
 
-Spatial.EX.Country.part1 <- function(uncode,
+Spatial.EX.Country.part1.setSUS <- function(uncode,
                                      iso3code,
                                      generation.time = 0.5, #generation time in months
                                      age.classes = c(1:240, seq(241,720,12)),
@@ -177,17 +178,17 @@ Spatial.EX.Country.part1 <- function(uncode,
     pred.prop.immune <- sapply(pred.prop.immune, function(x) min(x, max.immunity))
     #replace age-specific profiles IF proportion susceptible given for that age group
     if (s==1) {
-      new.state[EX@trans@r.inds[indexes]] <- age.struc.newstate[s,indexes]*pred.prop.immune
+      new.state[EX@trans@v.inds[indexes]] <- age.struc.newstate[s,indexes]*pred.prop.immune
       new.state[EX@trans@s.inds[indexes]] <- age.struc.newstate[s,indexes]*(1-pred.prop.immune)
       new.state[EX@trans@m.inds[indexes]] <- 0
       new.state[EX@trans@i.inds[indexes]] <- 0
-      new.state[EX@trans@v.inds[indexes]] <- 0
+      new.state[EX@trans@r.inds[indexes]] <- 0
     } else {
-      new.state[EX@trans@r.inds[(300*(s-1))+indexes]] <- age.struc.newstate[s,indexes]*pred.prop.immune
+      new.state[EX@trans@v.inds[(300*(s-1))+indexes]] <- age.struc.newstate[s,indexes]*pred.prop.immune
       new.state[EX@trans@s.inds[(300*(s-1))+indexes]] <- age.struc.newstate[s,indexes]*(1-pred.prop.immune)
       new.state[EX@trans@m.inds[(300*(s-1))+indexes]] <- 0
       new.state[EX@trans@i.inds[(300*(s-1))+indexes]] <- 0
-      new.state[EX@trans@v.inds[(300*(s-1))+indexes]] <- 0
+      new.state[EX@trans@r.inds[(300*(s-1))+indexes]] <- 0
     }
   }
 

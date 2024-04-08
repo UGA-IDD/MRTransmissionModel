@@ -30,6 +30,7 @@
 #'
 
 Spatial.EX.Country.part1 <- function(uncode,
+                                     iso3code,
                                      generation.time = 0.5, #generation time in months
                                      age.classes = c(1:240, seq(241,720,12)),
                                      maternal.decay.rt=0.95, #based on Metcalf, 2012 paper
@@ -162,7 +163,7 @@ Spatial.EX.Country.part1 <- function(uncode,
   EX@trans@waifw <- res@experiment.def@trans@waifw
 
   res <- run(EX, rescale.WAIFW=T)
-  plot(res@result)
+  #plot(res@result)
 
   # Reset
   age.struc.t0 <- space.wrapper.GetNumber.per.AgeGroup(state=res@experiment.def@state.t0, trans=EX@trans)
