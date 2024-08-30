@@ -202,6 +202,9 @@ setMethod("run",
 
             for (t in 2:numTimeSteps) {
 
+              #introduction rates
+              if (length(exper@intro.rate)>1) tmp.trans@introduction.rate <- rep(exper@intro.rate[t],exper@trans@n.age.class)
+
               #scale the waifw by seasonality
               if (!is.array(mults)){
                 tmp.trans@waifw <- exper@trans@waifw*mults[t]
@@ -374,6 +377,9 @@ setMethod("run",
             SIA.fail.each.timestep[1] <- 0
 
             for (t in 2:numTimeSteps) {
+
+              #introduction rates
+              if (length(exper@intro.rate)>1) tmp.trans@introduction.rate <- rep(exper@intro.rate[index.routine.vacc[t]],exper@trans@n.age.class)
 
               #scale the waifw by seasonality
               if (!is.array(mults)){

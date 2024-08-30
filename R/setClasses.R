@@ -482,7 +482,8 @@ setClass("experiment.updatedemog",
          slots = list(trans = "ID.transition.SIR.vac", #the transitions for this experiment - xxamy added this
                       surv.each.timestep = "matrix", #the estimated age-specific survival rates over the length of the experiment, ncol is T
                       pop.rescale.each.timestep = "ANY", #a vector of 0's if not call for population rescale, if !=0 then rescale by this pop number
-                      maternal.obj = "maternal.exp.decay"),  #maternal antibody object
+                      maternal.obj = "maternal.exp.decay", #maternal antibody object
+                      intro.rate = "ANY"),  #infected introduction rate per time point (note this is also per age class), length T
          contains=c("experiment"))
 
 

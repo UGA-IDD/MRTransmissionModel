@@ -22,6 +22,7 @@ Collate:
     'Get.CountryX.Starting.Pop.MSIRV.R'
     'GetNumber.per.AgeGroup.R'
     'GetNumber.per.AgeYear.R'
+    'GetNumberRubellaSusceptible.per.Year.R'
     'GetProp.per.Year.R'
     'GetRubellaCases.per.Year.R'
     'GetRubellaSeroprevalence.per.Year.R'
@@ -95,4 +96,4 @@ Collate:
     'space.wrapper.surv.prob.over.age.R'
     'space.wrapper.surv.prob.over.age.time.R'
     'toProportions.R'
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1

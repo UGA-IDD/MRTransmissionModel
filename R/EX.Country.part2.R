@@ -31,6 +31,7 @@
 #' @param SIAinacc xxx
 #' @param prop.inacc xxx
 #' @param SIAinefficient xxx
+#' @param intro.rate - vector for each time point (this is the rate per group)
 #'
 #' @include setClasses.R
 #' @importFrom methods new
@@ -69,7 +70,8 @@ EX.Country.part2 <- function(uncode,
                              MR2SIAcorrelation = FALSE,
                              SIAinacc = FALSE,
                              prop.inacc = NULL,
-                             SIAinefficient = FALSE){
+                             SIAinefficient = FALSE,
+                             intro.rate){
 
 
   ## Changing experiment type
@@ -144,6 +146,9 @@ EX.Country.part2 <- function(uncode,
       #EX@prop.inacc = prop.inacc #by year
     }
   }
+
+  # Introduction rate
+  if (length(intro.rate)>1) EX@intro.rate <- intro.rate else EX@intro.rate <- EXt0@trans@introduction.rate #vector of values annual introduction rates 1980-2100
 
   return(run(EX, rescale.WAIFW=rescale.WAIFW))
 

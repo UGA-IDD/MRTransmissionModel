@@ -35,7 +35,8 @@ EX.Country.part2(
   MR2SIAcorrelation = FALSE,
   SIAinacc = FALSE,
   prop.inacc = NULL,
-  SIAinefficient = FALSE
+  SIAinefficient = FALSE,
+  intro.rate
 )
 }
 \arguments{
@@ -100,6 +101,8 @@ EX.Country.part2(
 \item{prop.inacc}{xxx}
 
 \item{SIAinefficient}{xxx}
+
+\item{intro.rate}{- vector for each time point (this is the rate per group)}
 }
 \value{
 experiment results
