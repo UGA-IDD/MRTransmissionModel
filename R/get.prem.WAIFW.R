@@ -2,10 +2,10 @@
 #'
 #' @param age.class.boundries the upper age limit for each age class in YEARS
 #' @param uncode country code
-#' @param other.contact.matrix xxx
+#' @param other.contact.matrix boolean
 #' @param bandwidth desired smooth bandwidth - default=c(3,3)
-#' @param adjustment_start_year for 202110gavi_v3 given that Shaun's R0 estimates are adjusted to 1980 pop structure
-#' @param year xxx
+#' @param adjustment_start_year boolean - for 202110gavi_v3 given that Shaun's R0 estimates are adjusted to 1980 pop structure
+#' @param year numeric - year for which doing the adjustment re: adjustment_start_year
 #'
 #' @import countrycode
 #'

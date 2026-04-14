@@ -11,9 +11,9 @@
 #' @param yr.births.per.1000.acrossyears vector of length t.max; crude birth rate per 1000 per year
 #' @param asdr.object nMx object; with rate and mid-age (age specific death rates)
 #' @param year numeric; year that pulled DFE demography (population and age structure) from part1
-#' @param EXt0 xxx
-#' @param time.specific.MR1cov xxx
-#' @param time.specific.MR2cov xxx
+#' @param EXt0 object from EX.Country.part1()
+#' @param time.specific.MR1cov numeric; coverage in proportion by year
+#' @param time.specific.MR2cov numeric; coverage in proportion by year
 #' @param time.specific.SIAcov xxx
 #' @param time.specific.min.age.MR1 xxx
 #' @param time.specific.max.age.MR1 xxx
