@@ -1,0 +1,424 @@
+---
+title: "Getting Started with MRTransmissionModel"
+author: "MRTransmissionModel"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with MRTransmissionModel}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+`MRTransmissionModel` is an age-structured, discrete-time stochastic
+transmission model for measles and rubella. The model tracks five
+epidemiological stages — Maternally immune (M), Susceptible (S), Infected
+(I), Recovered (R), and effectively Vaccinated (V) — across many age classes and uses a transition matrix at every time step to move people between those epidemiological classes.
+
+Most users will only ever interact with three wrapper functions, which
+should be called **in this order**:
+
+1. `setupCountry.Nov2023()` — pulls demography (UNWPP 2022) and vaccination coverage (WHO/WUENIC, SIA) data for a single country.
+2. `EX.Country.part1()` — builds the transmission experiment object and runs out the transients to reach a stable starting state.
+3. `EX.Country.part2()` — runs the actual simulation under whatever vaccination scenario you specify.
+
+This vignette walks through each step using **Zambia** as the example
+country. The same workflow applies to any country supported by the
+underlying WHO and UNPD data files.
+
+```{r}
+library(MRTransmissionModel)
+```
+
+---
+
+## Step 1: `setupCountry.Nov2023()`
+
+This function gathers everything you need about a country in one call:
+demographic projections (1950–2100), routine MCV1/MCV2 and RCV1 coverage
+(1980–2100), measles and rubella SIA campaigns, age-specific birth and
+death rates, and the inaccessible-to-vaccine proportion.
+
+```{r}
+setup <- setupCountry.Nov2023(country = "Zambia")
+```
+
+### Argument
+
+- `country` — character string. The country name as recognized by the
+  `countrycode` package (e.g. `"Zambia"`, `"Kenya"`, `"Pakistan"`).
+  Internally this is converted to both UN code and ISO3 code.
+
+### What you get back
+
+`setup` is a named list. The pieces you'll usually pass on to the next two
+functions include:
+
+- `uncode`, `iso3code` — country identifiers.
+- `cbr.1950.2100` — crude birth rate per 1000 per year.
+- `pop.total.1950.2100`, `pop.age.byageclasses.1950.2100` — total and
+  age-structured population.
+- `asdr.object` — age-specific death rate object used to build survival.
+- `get.births.here` — pre-built births function for the country.
+- `MCV1.coverage.1980to2100`, `MCV2.coverage.1980to2100`,
+  `RCV1.coverage.1980to2100` — annual routine coverage (proportions).
+- `measlesSIA.coverage.1980to2100`, `age.min.sia.measles`,
+  `age.max.sia.measles` — measles SIA coverage and age targeting.
+- `rubellaSIA.coverage.1980to2100`, `age.min.sia.rubella`,
+  `age.max.sia.rubella` — same for rubella SIAs.
+- `inaccessible.prop.1980to2100` — proportion of the population assumed
+  unreachable by vaccination (derived from DTP1).
+
+---
+
+## Step 2: `EX.Country.part1()`
+
+This sets up the transmission experiment and **runs out the transients**
+so that the population is in a realistic equilibrium before the actual
+simulation begins. The output (`EXt0`) is the starting point for Step 3.
+
+```{r}
+year  <- 2022
+t.max <- length(year:2100)
+
+EXt0 <- EX.Country.part1(
+  uncode                       = setup$uncode,
+  generation.time              = 0.5,
+  age.classes                  = c(1:240, seq(252, 1212, 12)),
+  maternal.decay.rt            = 0.45,
+  exponent                     = 0.97,
+  frequency.dep                = TRUE,
+  yr.births.per.1000.acrossyears = rep(setup$cbr.1950.2100[year - 1950 + 1], 20),
+  intro.rate                   = 1 / 24 / 320,
+  tot.pop                      = NULL,
+  targeted.intro               = FALSE,
+  R0                           = 5,
+  t.max                        = 20,
+  get.births                   = setup$get.births.here,
+  seasonal.amp                 = 0.15,
+  flat.WAIFW                   = FALSE,
+  country.specific.WAIFW       = TRUE,
+  vynnycky.waifw               = FALSE,
+  vynnycky.waifw.betas         = c(2, 1),
+  asdr.object                  = setup$asdr.object,
+  year                         = year,
+  use_montagu_demog            = FALSE,
+  routine.vac                  = 0,
+  routine.vac.age.index        = 12
+)
+```
+
+### Key arguments
+
+- `uncode` — UN country code (from `setup$uncode`).
+- `generation.time` — generation time in **months** (0.5 ≈ 2 weeks, the
+  standard for measles/rubella).
+- `age.classes` — vector of upper age class boundaries in months. The
+  default `c(1:240, seq(252, 1212, 12))` gives monthly resolution from 0–20
+  years and yearly resolution from 20–101 years.
+- `maternal.decay.rt` — rate of maternal antibody decay.
+- `exponent`, `frequency.dep` — mixing assumptions for the force of
+  infection.
+- `yr.births.per.1000.acrossyears` — vector of crude birth rates (one per
+  year of `t.max`). For the transient run it's typical to repeat the start
+  year's CBR.
+- `intro.rate` — rate at which new infections are introduced (seeds the
+  model so it doesn't go extinct).
+- `targeted.intro` — `FALSE` spreads introductions across age classes;
+  `TRUE` concentrates them.
+- `R0` — basic reproduction number used to rescale the WAIFW (contact)
+  matrix. Measles is typically 12–18; rubella is typically 5–7.
+- `t.max` — number of **years** to run the transients (20 is usually
+  enough).
+- `get.births` — births function (use `setup$get.births.here`).
+- `seasonal.amp` — amplitude of the seasonal cosine in transmission
+  (0.15–0.35 is typical).
+- `flat.WAIFW`, `country.specific.WAIFW`, `vynnycky.waifw` — choose the
+  mixing matrix. `country.specific.WAIFW = TRUE` uses the Prem et al.
+  country-specific contact matrix.
+- `vynnycky.waifw.betas` — only used if `vynnycky.waifw = TRUE`; two
+  betas (young, old).
+- `asdr.object` — age-specific death rates (use `setup$asdr.object`).
+- `year` — the calendar year whose demography is used as the starting
+  point (DFE — disease-free equilibrium).
+- `use_montagu_demog` — `TRUE` to use Montagu (VIMC) demography instead of
+  UNPD; usually `FALSE`.
+- `routine.vac`, `routine.vac.age.index` — optional routine vaccination
+  during the transient phase (usually 0).
+
+The function returns an `experiment.updatedemog` object (`EXt0`) that
+holds the equilibrated state, transition matrix, contact matrix, and
+seasonal/maternal pieces — everything Step 3 needs.
+
+---
+
+## Step 3: `EX.Country.part2()`
+
+This runs the **actual simulation** forward in time under a specified
+vaccination scenario. You can call it multiple times with the same `EXt0`
+to compare scenarios (e.g., no-vaccine vs. routine + SIA).
+
+### A) No-vaccination scenario
+
+```{r}
+no_vac <- EX.Country.part2(
+  uncode                          = setup$uncode,
+  generation.time                 = 0.5,
+  pop.rescale                     = setup$pop.total.1950.2100[
+                                      seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                        = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                   = TRUE,
+  get.births                      = setup$get.births.here,
+  t.max                           = t.max,
+  rescale.WAIFW                   = FALSE,
+  yr.births.per.1000.acrossyears  = setup$cbr.1950.2100[
+                                      (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                     = setup$asdr.object,
+  year                            = year,
+  EXt0                            = EXt0,
+  time.specific.MR1cov            = rep(0, t.max),
+  time.specific.MR2cov            = rep(0, t.max),
+  time.specific.SIAcov            = rep(0, t.max),
+  time.specific.min.age.MR1       = rep(0, t.max),
+  time.specific.max.age.MR1       = rep(0, t.max),
+  time.specific.min.age.MR2       = rep(0, t.max),
+  time.specific.max.age.MR2       = rep(0, t.max),
+  time.specific.min.age.SIA       = rep(0, t.max),
+  time.specific.max.age.SIA       = rep(0, t.max),
+  obj.vcdf.MR1                    = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                    = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                  = pvacsuccess(c(1:240, seq(252, 1212, 12)),
+                                                get.boulianne.vsucc()),
+  sia.timing.in.year              = 3 / 12,
+  MR1MR2correlation               = FALSE,
+  MR1SIAcorrelation               = FALSE,
+  MR2SIAcorrelation               = FALSE,
+  SIAinacc                        = FALSE,
+  prop.inacc                      = rep(0, t.max),
+  SIAinefficient                  = FALSE,
+  intro.rate                      = 1 / 24 / 320
+)
+
+plot(no_vac@result)
+```
+
+### B) With-vaccination scenario
+
+Swap the zero coverage vectors for the country's actual coverage and SIA
+age targeting from `setup`:
+
+```{r}
+with_vac <- EX.Country.part2(
+  uncode                          = setup$uncode,
+  generation.time                 = 0.5,
+  pop.rescale                     = setup$pop.total.1950.2100[
+                                      seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                        = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                   = TRUE,
+  get.births                      = setup$get.births.here,
+  t.max                           = t.max,
+  rescale.WAIFW                   = FALSE,
+  yr.births.per.1000.acrossyears  = setup$cbr.1950.2100[
+                                      (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                     = setup$asdr.object,
+  year                            = year,
+  EXt0                            = EXt0,
+  time.specific.MR1cov            = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov            = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.SIAcov            = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.min.age.MR1       = rep(9,  t.max),
+  time.specific.max.age.MR1       = rep(24, t.max),
+  time.specific.min.age.MR2       = rep(25, t.max),
+  time.specific.max.age.MR2       = rep(36, t.max),
+  time.specific.min.age.SIA       = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
+  time.specific.max.age.SIA       = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
+  obj.vcdf.MR1                    = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                    = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                  = pvacsuccess(c(1:240, seq(252, 1212, 12)),
+                                                get.boulianne.vsucc()),
+  sia.timing.in.year              = 3 / 12,
+  MR1MR2correlation               = FALSE,
+  MR1SIAcorrelation               = FALSE,
+  MR2SIAcorrelation               = FALSE,
+  SIAinacc                        = FALSE,
+  prop.inacc                      = rep(0, t.max),
+  SIAinefficient                  = FALSE,
+  intro.rate                      = 1 / 24 / 320
+)
+
+plot(with_vac@result)
+```
+
+### Key arguments
+
+- `uncode`, `generation.time`, `year`, `asdr.object`, `get.births`,
+  `yr.births.per.1000.acrossyears` — the same as in Step 2; usually pulled
+  straight from `setup`.
+- `EXt0` — the experiment object returned by `EX.Country.part1()`.
+- `t.max` — number of **years** to simulate forward (e.g. `2022:2100` →
+  `t.max = 79`).
+- `pop.rescale`, `pop.time` — optional vectors to rescale the simulated
+  population to known totals at specific years (keeps long runs from
+  drifting).
+- `is.stochastic` — `TRUE` for stochastic dynamics (recommended for actual
+  simulations); `FALSE` for deterministic.
+- `rescale.WAIFW` — usually `FALSE` after Step 2 has already rescaled.
+- `time.specific.MR1cov`, `time.specific.MR2cov`, `time.specific.SIAcov` —
+  vectors of length `t.max` giving the proportion vaccinated each year by
+  routine MR1, routine MR2, and SIAs respectively. Use 0s for a
+  no-vaccine counterfactual.
+- `time.specific.min.age.MR1` / `max.age.MR1` (and MR2, SIA) — vectors of
+  length `t.max` giving the min/max **age in months** targeted each year.
+- `obj.vcdf.MR1`, `obj.vcdf.MR2` — cumulative vaccination distributions
+  (when in age people actually get the dose). Defaults are reasonable;
+  `get.MR1cdf.survival()`, `get.vcdf.normal()`, and `get.vcdf.uniform()`
+  are alternatives.
+- `obj.prob.vsucc` — probability that a dose successfully immunizes by
+  age. `pvacsuccess(... , get.boulianne.vsucc())` is the standard.
+- `sia.timing.in.year` — fraction of the year when SIAs occur (e.g.
+  `3/12` ≈ April).
+- `MR1MR2correlation`, `MR1SIAcorrelation`, `MR2SIAcorrelation` — assume
+  the same children get repeatedly missed/reached across doses.
+- `SIAinacc`, `prop.inacc` — model a fraction of the population as
+  inaccessible to SIAs (use `setup$inaccessible.prop.1980to2100` if you
+  want this, subset to your year range).
+- `SIAinefficient` — flag SIAs as less than fully efficient.
+- `intro.rate` — scalar or vector controlling new infection introductions
+  over time.
+
+The return value is a `sim.results.MSIRV` object whose `@result` slot
+holds the M/S/I/R/V counts by age and time step. Use `plot()` for a
+quick look.
+
+### Digging into `with_vac`
+
+`with_vac` is an S4 `experiment.result` object with two top-level slots:
+
+- `with_vac@experiment.def` — the experiment definition that was run
+  (transition matrix, contact matrix, seasonal/maternal pieces, etc.).
+  Handy if you want to recover the exact inputs used.
+- `with_vac@result` — a `sim.results.MSIRV.update.demog.vaccine.change`
+  object (a subclass of `sim.results.MSIRV`, which itself extends a plain
+  `matrix`). This is where the simulated state lives.
+
+The `@result` object has several slots worth knowing about:
+
+- `@.Data` — the underlying numeric **matrix** of counts. Rows are
+  compartment-by-age-class combinations (all M age classes stacked, then
+  all S, then I, then R, then V). Columns are time steps. So
+  `dim(with_vac@result@.Data)` is roughly
+  `(5 * length(age.classes)) x (t.max / generation.time)`.
+- `@m.inds`, `@s.inds`, `@i.inds`, `@r.inds`, `@v.inds` — integer vectors
+  giving the **row indices** in `@.Data` that belong to each compartment
+  (Maternally immune / Susceptible / Infected / Recovered / Vaccinated).
+- `@age.class` — upper age-class boundaries in months (same vector you
+  passed to `EX.Country.part1()`).
+- `@t` — the vector of simulation time steps (in years, relative to
+  `year`).
+- `@births.each.timestep`, `@growth.rate.each.timestep`,
+  `@MR1.fail.each.timestep`, `@MR2.fail.each.timestep`,
+  `@SIA.fail.each.timestep` — bookkeeping vectors recorded during the
+  run, useful for tallying births, missed doses, and vaccine failures.
+
+### Using `@.Data` to pull out pieces
+
+Because `@.Data` is just a matrix, the `@*.inds` slots are all you need
+to slice out whatever compartment, age range, or time window you want:
+
+```{r}
+res <- with_vac@result
+
+# Full compartment time series (sum across all age classes)
+S_t <- colSums(res@.Data[res@s.inds, ])   # susceptibles over time
+I_t <- colSums(res@.Data[res@i.inds, ])   # infecteds over time
+V_t <- colSums(res@.Data[res@v.inds, ])   # effectively vaccinated
+
+# Age-structured snapshot at a single time step (e.g. the last one)
+last <- ncol(res@.Data)
+I_by_age_last <- res@.Data[res@i.inds, last]
+names(I_by_age_last) <- res@age.class     # labelled by upper age in months
+
+# Infecteds in children under 5 years (i.e. age class <= 60 months)
+under5 <- which(res@age.class <= 60)
+I_u5_t <- colSums(res@.Data[res@i.inds[under5], ])
+
+# Annual incidence: sum infecteds within each calendar year
+year_idx  <- floor(res@t)                 # integer year offset
+I_by_year <- tapply(colSums(res@.Data[res@i.inds, ]), year_idx, sum)
+```
+
+If you'd rather not index by hand, `getCompartmentTotals(with_vac@result)`
+collapses `@.Data` to a 5-row matrix (M/S/I/R/V) by time, and
+`plot(with_vac@result)` gives the default visual summary.
+
+---
+
+## Putting it all together
+
+A complete minimal run looks like:
+
+```{r}
+library(MRTransmissionModel)
+
+setup <- setupCountry.Nov2023(country = "Zambia")
+year  <- 2022
+t.max <- length(year:2100)
+
+EXt0 <- EX.Country.part1(
+  uncode = setup$uncode,
+  yr.births.per.1000.acrossyears = rep(setup$cbr.1950.2100[year - 1950 + 1], 20),
+  asdr.object = setup$asdr.object,
+  get.births  = setup$get.births.here,
+  year        = year,
+  R0          = 5,
+  t.max       = 20,
+  country.specific.WAIFW = TRUE
+)
+
+sim <- EX.Country.part2(
+  uncode = setup$uncode,
+  EXt0   = EXt0,
+  year   = year,
+  t.max  = t.max,
+  asdr.object = setup$asdr.object,
+  get.births  = setup$get.births.here,
+  yr.births.per.1000.acrossyears =
+    setup$cbr.1950.2100[(year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  time.specific.MR1cov  = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov  = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.SIAcov  = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.min.age.MR1 = rep(9,  t.max),
+  time.specific.max.age.MR1 = rep(24, t.max),
+  time.specific.min.age.MR2 = rep(25, t.max),
+  time.specific.max.age.MR2 = rep(36, t.max),
+  time.specific.min.age.SIA = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
+  time.specific.max.age.SIA = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
+  is.stochastic = TRUE,
+  intro.rate    = 1 / 24 / 320
+)
+
+plot(sim@result)
+```
+
+That's the full workflow: **set up → run transients → simulate**. Swap
+the country, change the coverage vectors, or vary `R0` to explore other
+scenarios.
+
+## Where to learn more
+
+- See `?setupCountry.Nov2023`, `?EX.Country.part1`, and
+  `?EX.Country.part2` for the full argument lists.
+- `auxiliary/runScript_who_un_inputs.R` in the package source has a
+  fuller worked example with multiple scenarios.
+- The model framework is described in Metcalf et al. (2012), *Theor Popul
+  Biol* and *Epidemiol Infect*; see the package README for the full
+  citations.
