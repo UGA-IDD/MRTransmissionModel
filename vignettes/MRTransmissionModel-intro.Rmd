@@ -22,7 +22,8 @@ knitr::opts_chunk$set(
 `MRTransmissionModel` is an age-structured, discrete-time stochastic
 transmission model for measles and rubella. The model tracks five
 epidemiological stages — Maternally immune (M), Susceptible (S), Infected
-(I), Recovered (R), and effectively Vaccinated (V) — across many age classes and uses a transition matrix at every time step to move people between those epidemiological classes.
+(I), Recovered (R), and effectively Vaccinated (V) — across many age classes and 
+uses a transition matrix at every time step to move people between those epidemiological classes.
 
 Most users will only ever interact with three wrapper functions, which
 should be called **in this order**:
@@ -87,8 +88,7 @@ so that the population is in a realistic equilibrium before the actual
 simulation begins. The output (`EXt0`) is the starting point for Step 3.
 
 ```{r}
-year  <- 2022
-t.max <- length(year:2100)
+year  <- 1980
 
 EXt0 <- EX.Country.part1(
   uncode                       = setup$uncode,
@@ -101,7 +101,7 @@ EXt0 <- EX.Country.part1(
   intro.rate                   = 1 / 24 / 320,
   tot.pop                      = NULL,
   targeted.intro               = FALSE,
-  R0                           = 5,
+  R0                           = 20,
   t.max                        = 20,
   get.births                   = setup$get.births.here,
   seasonal.amp                 = 0.15,
@@ -111,10 +111,9 @@ EXt0 <- EX.Country.part1(
   vynnycky.waifw.betas         = c(2, 1),
   asdr.object                  = setup$asdr.object,
   year                         = year,
-  use_montagu_demog            = FALSE,
-  routine.vac                  = 0,
-  routine.vac.age.index        = 12
+  use_montagu_demog            = FALSE
 )
+
 ```
 
 ### Key arguments
@@ -170,13 +169,14 @@ to compare scenarios (e.g., no-vaccine vs. routine + SIA).
 ### A) No-vaccination scenario
 
 ```{r}
+t.max <- 45
 no_vac <- EX.Country.part2(
   uncode                          = setup$uncode,
   generation.time                 = 0.5,
   pop.rescale                     = setup$pop.total.1950.2100[
                                       seq(1990, (year + t.max - 10), 10) - 1950 + 1],
   pop.time                        = seq(1990, (year + t.max - 10), 10) - year,
-  is.stochastic                   = TRUE,
+  is.stochastic                   = FALSE,
   get.births                      = setup$get.births.here,
   t.max                           = t.max,
   rescale.WAIFW                   = FALSE,
@@ -199,7 +199,7 @@ no_vac <- EX.Country.part2(
   obj.prob.vsucc                  = pvacsuccess(c(1:240, seq(252, 1212, 12)),
                                                 get.boulianne.vsucc()),
   sia.timing.in.year              = 3 / 12,
-  MR1MR2correlation               = FALSE,
+  MR1MR2correlation               = TRUE,
   MR1SIAcorrelation               = FALSE,
   MR2SIAcorrelation               = FALSE,
   SIAinacc                        = FALSE,
