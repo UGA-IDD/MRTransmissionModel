@@ -208,7 +208,7 @@ no_vac <- EX.Country.part2(
   intro.rate                      = 1 / 24 / 320
 )
 
-plot(no_vac@result)
+plot(no_vac@result, main="Zambia")
 ```
 
 ### B) With-vaccination scenario
@@ -246,7 +246,7 @@ with_vac <- EX.Country.part2(
   obj.prob.vsucc                  = pvacsuccess(c(1:240, seq(252, 1212, 12)),
                                                 get.boulianne.vsucc()),
   sia.timing.in.year              = 3 / 12,
-  MR1MR2correlation               = FALSE,
+  MR1MR2correlation               = TRUE,
   MR1SIAcorrelation               = FALSE,
   MR2SIAcorrelation               = FALSE,
   SIAinacc                        = FALSE,
@@ -255,7 +255,7 @@ with_vac <- EX.Country.part2(
   intro.rate                      = 1 / 24 / 320
 )
 
-plot(with_vac@result)
+plot(with_vac@result, main="Zambia")
 ```
 
 ### Key arguments
@@ -362,54 +362,7 @@ collapses `@.Data` to a 5-row matrix (M/S/I/R/V) by time, and
 
 ---
 
-## Putting it all together
-
-A complete minimal run looks like:
-
-```{r}
-library(MRTransmissionModel)
-
-setup <- setupCountry.Nov2023(country = "Zambia")
-year  <- 2022
-t.max <- length(year:2100)
-
-EXt0 <- EX.Country.part1(
-  uncode = setup$uncode,
-  yr.births.per.1000.acrossyears = rep(setup$cbr.1950.2100[year - 1950 + 1], 20),
-  asdr.object = setup$asdr.object,
-  get.births  = setup$get.births.here,
-  year        = year,
-  R0          = 5,
-  t.max       = 20,
-  country.specific.WAIFW = TRUE
-)
-
-sim <- EX.Country.part2(
-  uncode = setup$uncode,
-  EXt0   = EXt0,
-  year   = year,
-  t.max  = t.max,
-  asdr.object = setup$asdr.object,
-  get.births  = setup$get.births.here,
-  yr.births.per.1000.acrossyears =
-    setup$cbr.1950.2100[(year - 1950 + 1):((year - 1950 + 1) + t.max)],
-  time.specific.MR1cov  = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
-  time.specific.MR2cov  = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
-  time.specific.SIAcov  = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max],
-  time.specific.min.age.MR1 = rep(9,  t.max),
-  time.specific.max.age.MR1 = rep(24, t.max),
-  time.specific.min.age.MR2 = rep(25, t.max),
-  time.specific.max.age.MR2 = rep(36, t.max),
-  time.specific.min.age.SIA = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
-  time.specific.max.age.SIA = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
-  is.stochastic = TRUE,
-  intro.rate    = 1 / 24 / 320
-)
-
-plot(sim@result)
-```
-
-That's the full workflow: **set up → run transients → simulate**. Swap
+The full workflow: **set up → run transients → simulate**. Swap
 the country, change the coverage vectors, or vary `R0` to explore other
 scenarios.
 
