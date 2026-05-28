@@ -1,6 +1,6 @@
 #' Get Routine time age-specific
 #'
-#' @param time.step xxx
+#' @param time.step numeric -- duration of one model time step in months; must evenly divide the age bin width (1 month)
 #' @param age.classes xxx
 #' @param time.specific.MR1cov xxx
 #' @param age.min.MR1 xxx
@@ -31,6 +31,8 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
   for (j in 1:length(time.specific.MR1cov)) {
     if (time.specific.MR1cov[j]!=0){
 
+      # correctly distributing vaccination events across the model's finer time grid while preserving the correct aggregate coverage
+      # to do this using hazard-based rescaling to avoid over- or under-counting vaccinations when the time step doesn't align with the age-bin width
       cdf.vaccination.MR1 <- obj.vcdf.MR1@cdf[obj.vcdf.MR1@ages %in% c(age.min.MR1[j]:age.max.MR1[j])]
       prob.success.MR1 <- obj.prob.vsucc@prob.vsucc[obj.prob.vsucc@ages %in% c(age.min.MR1[j]:age.max.MR1[j])]
       if (length(cdf.vaccination.MR1)!=length(prob.success.MR1)) stop("problem matching age in vcdf and vsucc, MR1")
@@ -42,6 +44,7 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
       high.age <- age.min.MR1[j]:age.max.MR1[j]
       age.sz <- high.age-low.age
       ts.per.class <- age.sz/time.step
+      if (age.min.MR1[j]==age.max.MR1[j]) ts.per.class <- 1
       final.pdf <- 1-(1-h)^(1/ts.per.class)
       pdf.scaled.vaccination <- pmax(final.pdf,0)
       time.specific.routine[j,age.classes %in% c(age.min.MR1[j]:age.max.MR1[j])] <-  pdf.scaled.vaccination*prob.success.MR1 #pdf*prob.success.MR1 = rep(0.04, 12); sum(rep(0.04, 12)) = 0.48 = ve1*mcv1, check
@@ -50,6 +53,26 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
       prop.fail.MR1[j] <- sum(pdf*(1-prob.success.MR1)) # = 0.12 = (1-ve1)*mcv1, proportion of total population with primary failure from MR1, check
       prop.fail.MR1.byage[j,age.classes %in% c(age.min.MR1[j]:age.max.MR1[j])] <- pdf*(1-prob.success.MR1)
 
+      #check it worked #1
+      #ts <- 1 / time.step  # time steps per age bin (= 2)
+      #pvacc <- time.specific.routine[j, age.classes %in% (age.min.MR1[j]:age.max.MR1[j])]
+      #prob.success <- obj.prob.vsucc@prob.vsucc[obj.prob.vsucc@ages %in% (age.min.MR1[j]:age.max.MR1[j])]
+      #final.pdf <- pvacc / prob.success # = 1 - (1-h)^(1/ts); strip out VE to get the per-step attempt probability
+      #h.recovered <- 1 - (1 - final.pdf)^ts # invert back to monthly hazard
+      #S <- cumprod(1 - h.recovered) # rebuild the survival function and total coverage
+      #stopifnot(abs(time.specific.MR1cov[j] - (1 - S[length(S)])) < 1e-6)
+
+      #check it worked #2
+      prob_not_vacc <- 1
+      total_vacc_prob <- 0
+      for (age.idx in seq_along(pdf.scaled.vaccination)) {
+        for (step in 1:ts.per.class[age.idx]) {
+          total_vacc_prob <- total_vacc_prob + prob_not_vacc * pdf.scaled.vaccination[age.idx] * prob.success.MR1[age.idx]
+          prob_not_vacc  <- prob_not_vacc * (1 - pdf.scaled.vaccination[age.idx])
+        }
+      }
+      expected <- (time.specific.MR1cov[j] - prop.fail.MR1[j])
+      stopifnot(abs(total_vacc_prob - expected) < 1e-6)
     }
   }
 
@@ -74,6 +97,7 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
       high.age <- age.min.MR2[j]:age.max.MR2[j]
       age.sz <- high.age-low.age
       ts.per.class <- age.sz/time.step
+      if (age.min.MR2[j]==age.max.MR2[j]) ts.per.class <- 1
       final.pdf <- 1-(1-h)^(1/ts.per.class)
       pdf.scaled.vaccination <- pmax(final.pdf,0)
       time.specific.routine[j,age.classes %in% c(age.min.MR2[j]:age.max.MR2[j])] <- pdf.scaled.vaccination*prob.success.MR2
