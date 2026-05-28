@@ -96,4 +96,4 @@ Collate:
     'space.wrapper.surv.prob.over.age.R'
     'space.wrapper.surv.prob.over.age.time.R'
     'toProportions.R'
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.3

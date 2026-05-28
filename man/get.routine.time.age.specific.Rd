@@ -20,7 +20,7 @@ get.routine.time.age.specific(
 )
 }
 \arguments{
-\item{time.step}{xxx}
+\item{time.step}{numeric -- duration of one model time step in months; must evenly divide the age bin width (1 month)}
 
 \item{age.classes}{xxx}
 
