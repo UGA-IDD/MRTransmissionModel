@@ -169,6 +169,16 @@ FitMeaslesSerology <- function(
     ...
   )
 
+  cov.transformed <- if (hessian && !is.null(fit$hessian)) {
+    tryCatch(
+      solve(fit$hessian),
+      error = function(e) {
+        warning("Hessian is singular; cov.transformed set to NULL")
+        NULL
+      }
+    )
+  } else NULL
+
   out <- list(
     optim           = fit,
     par.transformed = stats::setNames(fit$par, c("log_R0", "atanh_rho")),
@@ -176,7 +186,8 @@ FitMeaslesSerology <- function(
     logLik          = -fit$value,
     predictions     = pred,
     convergence     = fit$convergence,
-    message         = if(!is.null(fit$message)) fit$message else NA_character_
+    message         = if(!is.null(fit$message)) fit$message else NA_character_,
+    cov.transformed = cov.transformed
   )
 
   return(out)

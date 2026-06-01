@@ -15,7 +15,7 @@
 #' @param age.classes numeric vector. Upper bounds of age classes in months.
 #' @param generation.time numeric. Generation time in months (default 0.5).
 #' @param seasonal.amp numeric. Seasonal forcing amplitude (default 0.15).
-#' @param age0is9to12monly logical. Passed as \code{age0is9to11monly} to
+#' @param age0is6to11monly logical. Passed as \code{age0is6to11monly} to
 #'   \code{GetPredictedMeaslesSerology()}.
 #' @param eps numeric. Small value used to bound predicted probabilities away
 #'   from 0 and 1 before evaluating the log-likelihood (default 1e-10).
@@ -36,7 +36,7 @@ LogLikMeaslesSerology <- function(
     age.classes = c(1:240, seq(252, 1212, 12)),
     generation.time = 0.5,
     seasonal.amp = 0.15,
-    age0is9to12monly = FALSE,
+    age0is6to11monly = FALSE,
     eps = 1e-10,
     .cache = NULL){
 
@@ -50,7 +50,7 @@ LogLikMeaslesSerology <- function(
     age.classes = age.classes,
     generation.time = generation.time,
     seasonal.amp = seasonal.amp,
-    age0is9to11monly = age0is9to12monly,
+    age0is6to11monly = age0is6to11monly,
     .cache = .cache
   )
 

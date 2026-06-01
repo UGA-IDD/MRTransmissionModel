@@ -18,7 +18,7 @@
 #' @param time.point.index integer vector. Column indices of \code{res} at
 #'   which seroprevalence should be extracted (values in \code{1:ncol(res)}).
 #'   Only these columns are processed.
-#' @param age0is9to11monly logical. If \code{TRUE}, the age-0 row (< 1 year)
+#' @param age0is6to11monly logical. If \code{TRUE}, the age-0 row (< 1 year)
 #'   is replaced by the sum of months 10-12 only, approximating the window
 #'   when maternal antibodies have waned.
 #'
@@ -32,7 +32,7 @@
 #'     pop.age is zero}
 #' }
 GetMeaslesSeroprevalence.per.TimePoint <- function(res, trans, epi.state, no.gens.in.year,
-                                                   time.point.index, age0is9to11monly = FALSE){
+                                                   time.point.index, age0is6to11monly = FALSE){
 
   m <- res[epi.state == 1, , drop = FALSE]
   r <- res[epi.state == 4, , drop = FALSE]
@@ -52,15 +52,15 @@ GetMeaslesSeroprevalence.per.TimePoint <- function(res, trans, epi.state, no.gen
     r.age[, i] <- GetNumber.per.AgeYear(vec = r[, t], age.classes = trans@age.class)
     v.age[, i] <- GetNumber.per.AgeYear(vec = v[, t], age.classes = trans@age.class)
 
-    if(age0is9to11monly){
-      m.age[1, i] <- sum(m[10:12, t])
-      r.age[1, i] <- sum(r[10:12, t])
-      v.age[1, i] <- sum(v[10:12, t])
+    if(age0is6to11monly){
+      m.age[1, i] <- sum(m[7:12, t])
+      r.age[1, i] <- sum(r[7:12, t])
+      v.age[1, i] <- sum(v[7:12, t])
     }
 
     pop.all <- GetNumber.per.AgeGroup(state = res[, t], trans = trans)
     pop.age[, i] <- GetNumber.per.AgeYear(vec = pop.all, age.classes = trans@age.class)
-    if(age0is9to11monly) pop.age[1, i] <- sum(pop.all[10:12])
+    if(age0is6to11monly) pop.age[1, i] <- sum(pop.all[7:12])
   }
 
   imm.pop <- m.age + r.age + v.age

@@ -21,7 +21,7 @@
 #'   giving 24 time steps per year).
 #' @param seasonal.amp numeric. Amplitude of the seasonal cosine forcing
 #'   (default 0.15).
-#' @param age0is9to11monly logical. If \code{TRUE}, the age-0 (< 1 year)
+#' @param age0is6to11monly logical. If \code{TRUE}, the age-0 (< 1 year)
 #'   seroprevalence cell is computed from months 10-12 only. Passed to
 #'   \code{GetMeaslesSeroprevalence.per.TimePoint()}.
 #' @param .cache environment or \code{NULL}. When an environment is supplied,
@@ -65,7 +65,7 @@ GetPredictedMeaslesSerology <- function(
     age.classes = c(1:240, seq(252, 1212, 12)),
     generation.time = 0.5,
     seasonal.amp = 0.15,
-    age0is9to11monly = FALSE,
+    age0is6to11monly = FALSE,
     .cache = NULL){
 
   req.cols <- c("survey.time.point", "age.bin.lower", "age.bin.upper",
@@ -171,7 +171,7 @@ GetPredictedMeaslesSerology <- function(
     epi.state = tmp.res@experiment.def@trans@epi.class,
     no.gens.in.year = 24,
     time.point.index = tp.unique,
-    age0is9to11monly = age0is9to11monly
+    age0is6to11monly = age0is6to11monly
   )
 
   ## Aggregate once for the distinct age bins in the data

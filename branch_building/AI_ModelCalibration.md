@@ -187,9 +187,49 @@ fit$par.natural  # R0 = 18.07, rho = -0.27
 
 ---
 
-## Remaining potential improvements / next steps
+## Posterior uncertainty — Normal (Laplace) approximation
 
-1. **Bayesian MCMC** — get a posterior distribution over `(R0, rho)` instead of just the MLE point estimate. Simple Metropolis-Hastings on the transformed scale `(log(R0), atanh(rho))`, starting from the MLE. The Part 1 cache carries over to MCMC (pass the same `.cache` env throughout the chain).
+The normal approximation gives a posterior distribution over `(R0, rho)` from the Hessian of the negative log-likelihood at the MLE — no additional model runs required.
+
+Pass `hessian=TRUE` to `FitMeaslesSerology`. The return object includes:
+- `fit$cov.transformed` — 2×2 covariance matrix on the `(log(R0), atanh(rho))` scale
+
+Sample from the approximate posterior:
+```r
+samples.transformed <- MASS::mvrnorm(
+  n = 2000, mu = fit$par.transformed, Sigma = fit$cov.transformed
+)
+posterior.samples <- data.frame(
+  R0  = exp(samples.transformed[, "log_R0"]),
+  rho = tanh(samples.transformed[, "atanh_rho"])
+)
+```
+Full code including summaries and plots is in `branch_building/ModelCalibration.R`.
+
+**Validity check**: if marginal histograms look skewed or the joint scatter is non-elliptical, upgrade to MCMC (see below).
+
+---
+
+## Future work: full Bayesian MCMC ⚠️ REMINDER
+
+**Not yet done — worth doing when time allows.**
+
+The normal approximation is convenient but approximate. Full Metropolis-Hastings MCMC would give exact posterior samples and catch any non-normality (skew, nonlinear R0-rho correlation, etc.).
+
+**Why deferred**: ~25-30 sec per likelihood evaluation → ~35 hours for 5,000 iterations. Feasible overnight but not interactive.
+
+**How to implement**:
+- MH on `(log(R0), atanh(rho))`, initialized at the MLE
+- Proposal covariance: `2.38²/2 * fit$cov.transformed` (standard tuning)
+- Pass a single `.cache` env to every likelihood call throughout the chain
+- `adaptMCMC` R package handles adaptive tuning automatically
+- Run 3+ chains for convergence diagnostics (R-hat)
+
+---
+
+## Remaining potential improvements
+
+1. **MCMC** — see reminder above.
 
 2. **Parallelise the grid search** — `mapply` in `FitMeaslesSerology` is single-threaded. Could use `parallel::mcmapply` or `future.apply::future_mapply`.
 
