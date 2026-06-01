@@ -12,33 +12,51 @@ serodata <- data.frame(
                  round(100*seroprev.1980to2025$year_2015))
 )
 
-
+# --- Package loading ---
+# devtools::load_all(".") crashes R on this machine -- do not use.
+# Workflow that works:
+#   devtools::document()           # regenerate NAMESPACE (run once after @export changes)
+#   devtools::build()              # creates .tar.gz (does NOT install)
+#   devtools::install(".", quick=TRUE)  # run when C code changes or to bake new R files into library()
 library(MRTransmissionModel)
-setup <- setupCountry.Nov2023(country="Zambia")
-year <- 1980
-t.max <- 45
-
 source("R/GetPredictedMeaslesSerology.R")
 source("R/GetMeaslesSeroprevalence.per.TimePoint.R")
 source("R/AggregateMeaslesSeroprevalenceByAgeBins.R")
 source("R/LogLikMeaslesSerology.R")
+source("R/TransformMeaslesSerologyParameters.R")
+source("R/LogLikMeaslesSerology.transformed.R")
+source("R/NegLogLikMeaslesSerology.transformed.R")
+source("R/FitMeaslesSerology.R")
 
-LogLikMeaslesSerology(R0 = 16, sia.scale = 0.8, serodata = serodata,
-                      setup = setup, year = 1980, t.max = t.max,
-                      age.classes = c(1:60, seq(72, 1212, 12)))
+setup <- setupCountry.Nov2023(country="Zambia")
+year  <- 1980
+t.max <- 45
 
-#this took 36 secs
 
+# Single likelihood evaluation at R0=16, rho=0 (independence)
+LogLikMeaslesSerology(
+  R0          = 16,
+  rho         = 0,
+  serodata    = serodata,
+  setup       = setup,
+  year        = 1980,
+  t.max       = t.max,
+  age.classes = c(1:60, seq(72, 1212, 12))
+)
+
+
+# Full MLE fit — estimates R0 and rho (RI-SIA dose correlation)
+# Completed in < 45 minutes. Result: R0 = 18.07, rho = -0.27
+format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 fit <- FitMeaslesSerology(
-  serodata = serodata,
-  setup = setup,
-  year = 1980,
-  t.max = t.max,
-  par.init = c(log(16), qlogis(0.8)),
+  serodata    = serodata,
+  setup       = setup,
+  year        = 1980,
+  t.max       = t.max,
+  par.init    = c(log(16), atanh(0)),
   age.classes = c(1:60, seq(72, 1212, 12))
 )
 format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-#this took less than 2 hours
 
-fit$par.natural
+fit$par.natural   # R0 = 18.07, rho = -0.27
 head(fit$predictions)

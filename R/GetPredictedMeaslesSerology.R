@@ -13,8 +13,8 @@
 #'   vaccination inputs are indexed from 1980.
 #' @param t.max numeric. Number of years to simulate in Part 2.
 #' @param R0 numeric. Basic reproduction number used to scale the WAIFW matrix.
-#' @param sia.scale numeric. Multiplicative adjustment applied to SIA coverage
-#'   before it is passed to the model; clamped to \code{[0, 1]}.
+#' @param rho numeric. Pearson correlation between RI and SIA doses,
+#'   in \code{[-1, 1]} (default 0 = independence).
 #' @param age.classes numeric vector. Upper bounds of age classes in months
 #'   (default \code{c(1:240, seq(252, 1212, 12))}).
 #' @param generation.time numeric. Generation time in months (default 0.5,
@@ -61,7 +61,7 @@ GetPredictedMeaslesSerology <- function(
     year = 1980,
     t.max,
     R0,
-    sia.scale = 1,
+    rho = 0,
     age.classes = c(1:240, seq(252, 1212, 12)),
     generation.time = 0.5,
     seasonal.amp = 0.15,
@@ -84,9 +84,7 @@ GetPredictedMeaslesSerology <- function(
     stop("survey.time.point values must be >= 1")
   }
 
-  ## SIA scaling factor
   sia.cov <- setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):((year - 1980 + 1) + t.max)]
-  sia.cov <- pmax(0, pmin(1, sia.scale * sia.cov))
 
   ## Intro rate logic from your draft
   med.pop.2020to2100 <- median(setup$pop.total.1950.2100[71:151])
@@ -129,7 +127,6 @@ GetPredictedMeaslesSerology <- function(
       .cache$EXt0 <- EXt0
     }
   }
-
   ## Run part 2 - simulations from EXt0 state in year through year+t.max
   tmp.res <- EX.Country.part2(
     uncode = setup$uncode,
@@ -157,10 +154,9 @@ GetPredictedMeaslesSerology <- function(
     obj.prob.vsucc = pvacsuccess(age.classes, get.boulianne.vsucc()),
     sia.timing.in.year = 1/12,
     MR1MR2correlation = TRUE,
-    MR1SIAcorrelation = FALSE,
-    MR2SIAcorrelation = FALSE,
-    SIAinacc = TRUE,
-    prop.inacc = setup$inaccessible.prop.1980.to.2100[(year - 1980 + 1):((year - 1980 + 1) + t.max)],
+    MR1SIAcorrelation = rho,
+    MR2SIAcorrelation = rho,
+    SIAinacc = FALSE,
     SIAinefficient = FALSE,
     intro.rate = intro.rate.1950.2100/24/320
   )
