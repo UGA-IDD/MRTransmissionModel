@@ -38,7 +38,7 @@
 #' lower <- c(0, 5, 10)
 #' upper <- c(4, 9, 14)
 #'
-#' out <- AggregateMeaslesSeroprevalenceByAge(
+#' out <- AggregateMeaslesSeroprevalenceByAgeBins(
 #'   imm.pop = imm.pop,
 #'   pop.age = pop.age,
 #'   age.bin.lower = lower,

@@ -1,11 +1,8 @@
 #' Fit measles serology calibration model by maximum likelihood
 #'
 #' Maximizes the binomial likelihood of observed serological data over
-#' \code{R0} and \code{rho} using \code{optim()} on the transformed
-#' (unconstrained) parameter scale. Optionally runs a coarse grid search first
-#' to find a good starting point. A Part 1 result cache is maintained
-#' internally across all likelihood evaluations so that the expensive transient
-#' burn-in is not repeated when only \code{rho} changes.
+#' \code{R0} and \code{scale.sia} (and optionally \code{rho}) using
+#' \code{optim()} on the transformed (unconstrained) parameter scale.
 #'
 #' @param serodata data.frame containing observed serological data with columns:
 #'   \describe{
@@ -18,42 +15,37 @@
 #' @param setup country setup object returned by a \code{setupCountry_*} helper.
 #' @param year numeric. Simulation start year (typically 1980).
 #' @param t.max numeric. Number of years to simulate.
-#' @param par.init numeric vector of length 2. Starting values on the
-#'   transformed scale: \code{c(log(R0), atanh(rho))}. Overridden by
-#'   the grid search best point when \code{n.grid > 1}.
+#' @param par.init numeric vector. Starting values on the transformed scale.
+#'   Length 2 (\code{c(log(R0), qlogis(scale.sia))}) when \code{fix.rho} is a
+#'   number, or length 3 (\code{c(log(R0), qlogis(scale.sia), atanh(rho))})
+#'   when \code{fix.rho = NA}. If \code{NULL} (default), sensible defaults are
+#'   used.
+#' @param fix.rho numeric scalar or \code{NA}. When a number, \code{rho} is
+#'   fixed at that value and only \code{R0} and \code{scale.sia} are estimated.
+#'   When \code{NA}, \code{rho} is also estimated (3-parameter model). Default
+#'   \code{1} (maximum RI-SIA correlation, conservative assumption).
 #' @param method character. Optimization method passed to \code{optim()}.
-#'   Default is \code{"Nelder-Mead"} (derivative-free; one evaluation per
-#'   step). Use \code{"BFGS"} for faster convergence when the surface is
-#'   smooth; with the Part 1 cache active, the extra gradient evaluations are
-#'   cheaper than without caching.
+#'   Default \code{"Nelder-Mead"}.
 #' @param hessian logical. Should \code{optim()} return the Hessian at the
-#'   optimum? Default \code{FALSE}.
-#' @param n.grid integer. Number of grid points along each parameter axis for
-#'   an initial coarse grid search. A value of \code{n.grid = k} evaluates
-#'   \code{k^2} points. Set to \code{0} (default) to skip the grid search and
-#'   start \code{optim()} directly from \code{par.init}. Values of 4-6 are
-#'   usually sufficient to identify the basin of attraction.
-#' @param R0.range numeric vector of length 2. Lower and upper bounds for the
-#'   \code{R0} grid search on the natural scale (default \code{c(4, 30)}).
-#'   Ignored when \code{n.grid <= 1}.
-#' @param rho.range numeric vector of length 2. Lower and upper bounds
-#'   for the \code{rho} grid search (default \code{c(-0.9, 0.9)}).
-#'   Ignored when \code{n.grid <= 1}.
+#'   optimum? Used to compute the Laplace (normal) approximation to the
+#'   posterior. Default \code{FALSE}.
 #' @param age.classes numeric vector. Upper bounds of age classes in months
 #'   (default \code{c(1:240, seq(252, 1212, 12))}). Pass a coarser vector
 #'   (e.g. \code{c(1:60, seq(72, 1212, 12))}) to speed up the simulation.
-#' @param ... additional arguments passed through to
-#'   \code{NegLogLikMeaslesSerology.transformed()} and downstream functions
-#'   (e.g. \code{generation.time}, \code{seasonal.amp},
-#'   \code{age0is9to12monly}).
+#' @param generation.time numeric. Generation time in months (default 0.5).
+#' @param seasonal.amp numeric. Seasonal forcing amplitude (default 0.15).
+#' @param age0is6to11monly logical. If \code{TRUE}, the age-0 seroprevalence
+#'   cell uses months 7-12 only (default \code{FALSE}).
+#' @param eps numeric. Small value to bound predicted probabilities away from
+#'   0 and 1 (default 1e-10).
 #'
 #' @return A named list containing:
 #' \describe{
 #'   \item{optim}{raw output object from \code{optim()}}
 #'   \item{par.transformed}{named numeric vector of fitted parameters on the
-#'     transformed scale (\code{log_R0}, \code{atanh_rho})}
-#'   \item{par.natural}{named list with fitted \code{R0} and \code{rho}
-#'     on the natural scale}
+#'     transformed scale}
+#'   \item{par.natural}{named list with fitted \code{R0}, \code{scale.sia},
+#'     and \code{rho} on the natural scale}
 #'   \item{logLik}{maximized log-likelihood (scalar)}
 #'   \item{predictions}{\code{serodata} with columns \code{pred.seroprev},
 #'     \code{pred.imm.pop}, and \code{pred.pop} appended at the fitted
@@ -61,23 +53,10 @@
 #'   \item{convergence}{integer convergence code from \code{optim()} (0 = success)}
 #'   \item{message}{character convergence message from \code{optim()}, or
 #'     \code{NA} if none}
+#'   \item{cov.transformed}{covariance matrix of fitted parameters on the
+#'     transformed scale (from Hessian inversion), or \code{NULL} if
+#'     \code{hessian = FALSE} or the Hessian is singular}
 #' }
-#'
-#' @details
-#' Parameters are optimized on the transformed scale:
-#' \deqn{R0 = \exp(\theta_1), \quad \rho = \tanh(\theta_2)}
-#' ensuring \code{R0 > 0} and \code{-1 < rho < 1} throughout.
-#'
-#' A single \code{.cache} environment is created at the start of each
-#' \code{FitMeaslesSerology} call and shared across all likelihood evaluations
-#' (grid search and \code{optim()}). The Part 1 transient burn-in result is
-#' stored by \code{R0} and reused whenever \code{R0} has not changed since the
-#' previous call — most beneficial during grid search (same \code{R0} across
-#' all \code{rho} values in a row) and during derivative-free
-#' optimization steps that hold \code{R0} roughly fixed.
-#'
-#' When \code{n.grid > 1} the grid is ordered so that \code{rho} varies
-#' fastest, maximising Part 1 cache hits.
 #'
 #' @seealso \code{\link{NegLogLikMeaslesSerology.transformed}},
 #'   \code{\link{TransformMeaslesSerologyParameters}},
@@ -87,86 +66,73 @@
 FitMeaslesSerology <- function(
     serodata,
     setup,
-    year = 1980,
+    year             = 1980,
     t.max,
-    par.init = c(log(12), atanh(0)),
-    method = "Nelder-Mead",
-    hessian = FALSE,
-    n.grid = 0,
-    R0.range = c(4, 30),
-    rho.range = c(-0.9, 0.9),
-    age.classes = c(1:240, seq(252, 1212, 12)),
-    ...
-){
+    par.init         = NULL,
+    fix.rho          = 1,
+    method           = "Nelder-Mead",
+    hessian          = FALSE,
+    age.classes      = c(1:240, seq(252, 1212, 12)),
+    generation.time  = 0.5,
+    seasonal.amp     = 0.15,
+    age0is6to11monly = FALSE,
+    eps              = 1e-10
+) {
 
-  if(length(par.init) != 2){
-    stop("par.init must be a numeric vector of length 2")
+  n.par <- if (!is.na(fix.rho)) 2L else 3L
+
+  if (is.null(par.init)) {
+    par.init <- if (n.par == 2L) {
+      c(log(12), qlogis(0.5))
+    } else {
+      c(log(12), qlogis(0.5), atanh(0))
+    }
   }
 
-  .cache <- new.env(parent = emptyenv())
-
-  if (n.grid > 1) {
-    R0.grid  <- exp(seq(log(R0.range[1]), log(R0.range[2]), length.out = n.grid))
-    rho.grid <- seq(rho.range[1], rho.range[2], length.out = n.grid)
-    # rho varies fastest so consecutive evals share R0 and hit the Part 1 cache
-    grid.vals <- expand.grid(rho = rho.grid, R0 = R0.grid)
-
-    cat(sprintf(
-      "Grid search: %d points, R0 in [%.1f, %.1f], rho in [%.2f, %.2f]...\n",
-      nrow(grid.vals), R0.range[1], R0.range[2], rho.range[1], rho.range[2]
-    ))
-
-    grid.negll <- mapply(function(R0, rho) {
-      theta <- c(log(R0), atanh(rho))
-      tryCatch(
-        NegLogLikMeaslesSerology.transformed(
-          theta       = theta,
-          serodata    = serodata,
-          setup       = setup,
-          year        = year,
-          t.max       = t.max,
-          .cache      = .cache,
-          age.classes = age.classes,
-          ...
-        ),
-        error = function(e) Inf
-      )
-    }, grid.vals$R0, grid.vals$rho)
-
-    best.idx <- which.min(grid.negll)
-    par.init <- c(log(grid.vals$R0[best.idx]), atanh(grid.vals$rho[best.idx]))
-    cat(sprintf(
-      "Grid best: R0=%.2f, rho=%.3f (negLL=%.2f)\n",
-      grid.vals$R0[best.idx], grid.vals$rho[best.idx], grid.negll[best.idx]
+  if (length(par.init) != n.par) {
+    stop(sprintf(
+      "par.init must have length %d (fix.rho = %s)",
+      n.par, if (is.na(fix.rho)) "NA" else fix.rho
     ))
   }
 
   fit <- optim(
-    par         = par.init,
-    fn          = NegLogLikMeaslesSerology.transformed,
-    serodata    = serodata,
-    setup       = setup,
-    year        = year,
-    t.max       = t.max,
-    method      = method,
-    hessian     = hessian,
-    .cache      = .cache,
-    age.classes = age.classes,
-    ...
+    par              = par.init,
+    fn               = NegLogLikMeaslesSerology.transformed,
+    serodata         = serodata,
+    setup            = setup,
+    year             = year,
+    t.max            = t.max,
+    fix.rho          = fix.rho,
+    method           = method,
+    hessian          = hessian,
+    age.classes      = age.classes,
+    generation.time  = generation.time,
+    seasonal.amp     = seasonal.amp,
+    age0is6to11monly = age0is6to11monly,
+    eps              = eps
   )
 
-  par.nat <- TransformMeaslesSerologyParameters(fit$par)
+  par.nat <- TransformMeaslesSerologyParameters(fit$par, fix.rho = fix.rho)
+
+  par.names <- if (n.par == 2L) {
+    c("log_R0", "logit_scale.sia")
+  } else {
+    c("log_R0", "logit_scale.sia", "atanh_rho")
+  }
 
   pred <- GetPredictedMeaslesSerology(
-    serodata    = serodata,
-    setup       = setup,
-    year        = year,
-    t.max       = t.max,
-    R0          = par.nat$R0,
-    rho         = par.nat$rho,
-    .cache      = .cache,
-    age.classes = age.classes,
-    ...
+    serodata         = serodata,
+    setup            = setup,
+    year             = year,
+    t.max            = t.max,
+    R0               = par.nat$R0,
+    rho              = par.nat$rho,
+    scale.sia        = par.nat$scale.sia,
+    age.classes      = age.classes,
+    generation.time  = generation.time,
+    seasonal.amp     = seasonal.amp,
+    age0is6to11monly = age0is6to11monly
   )
 
   cov.transformed <- if (hessian && !is.null(fit$hessian)) {
@@ -179,16 +145,14 @@ FitMeaslesSerology <- function(
     )
   } else NULL
 
-  out <- list(
+  list(
     optim           = fit,
-    par.transformed = stats::setNames(fit$par, c("log_R0", "atanh_rho")),
+    par.transformed = stats::setNames(fit$par, par.names),
     par.natural     = par.nat,
     logLik          = -fit$value,
     predictions     = pred,
     convergence     = fit$convergence,
-    message         = if(!is.null(fit$message)) fit$message else NA_character_,
+    message         = if (!is.null(fit$message)) fit$message else NA_character_,
     cov.transformed = cov.transformed
   )
-
-  return(out)
 }

@@ -77,12 +77,11 @@ EX.Country.part2 <- function(uncode,
   ## Changing experiment type
   # call to new returns a newly allocated object from the class identified by first argument
   correlation.requested <- (MR1SIAcorrelation != 0 | MR2SIAcorrelation != 0)
-  limitation.requested  <- (SIAinacc | SIAinefficient)
 
-  if (correlation.requested & limitation.requested)
-    stop("MR1SIAcorrelation/MR2SIAcorrelation and SIAinacc/SIAinefficient are mutually exclusive")
+  if (SIAinefficient & (correlation.requested | MR1MR2correlation))
+    stop("SIAinefficient and correlation are mutually exclusive")
 
-  if (limitation.requested) {
+  if (SIAinefficient | SIAinacc) {
     EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations")
   } else if (correlation.requested | MR1MR2correlation) {
     EX <- new("experiment.updatedemog.vaccinationchange.vaccinationcorrelation")
@@ -145,7 +144,7 @@ EX.Country.part2 <- function(uncode,
   EX@obj.vcdf.MR2 = obj.vcdf.MR2
   EX@obj.prob.vsucc = obj.prob.vsucc
   EX@sia.timing.in.year = sia.timing.in.year
-  if (limitation.requested) {
+  if (SIAinefficient | SIAinacc) {
     EX@MR1MR2correlation <- MR1MR2correlation
     EX@MR1SIAcorrelation <- MR1SIAcorrelation != 0
     EX@MR2SIAcorrelation <- MR2SIAcorrelation != 0

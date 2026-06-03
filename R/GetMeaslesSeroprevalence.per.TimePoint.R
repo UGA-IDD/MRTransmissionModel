@@ -19,8 +19,8 @@
 #'   which seroprevalence should be extracted (values in \code{1:ncol(res)}).
 #'   Only these columns are processed.
 #' @param age0is6to11monly logical. If \code{TRUE}, the age-0 row (< 1 year)
-#'   is replaced by the sum of months 10-12 only, approximating the window
-#'   when maternal antibodies have waned.
+#'   is replaced by the sum of age classes 7-12 (months 6-11, 0-indexed), the
+#'   window after maternal antibody waning when seroprevalence is meaningful.
 #'
 #' @return A named list with three matrices, each of dimension
 #'   \code{n.age.years x length(time.point.index)}, with columns named by
@@ -31,6 +31,8 @@
 #'   \item{seroprev.age}{seroprevalence (imm.pop / pop.age); set to 1 where
 #'     pop.age is zero}
 #' }
+#'
+#' @export
 GetMeaslesSeroprevalence.per.TimePoint <- function(res, trans, epi.state, no.gens.in.year,
                                                    time.point.index, age0is6to11monly = FALSE){
 

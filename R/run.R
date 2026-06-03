@@ -630,6 +630,7 @@ setMethod("run",
 
                 #If inaccessible population, but not SIA inefficiency
                 if (!exper@MR1SIAcorrelation & !exper@MR2SIAcorrelation & exper@SIAinacc & !exper@SIAinefficient) {
+                  #assumes coverage and accessibility independent processes - if coverage is 90% and prop.inacc = 0.1, effective population-level coverage of 0.81
                   tmp.trans@vac.per@pvacc.in.age.class <- 1-(exper@prop.inacc[t]+
                                                                (1-exper@prop.inacc[t])*(1-(routine.vacc.prob[index.routine.vacc[t],] +
                                                                                              sia.vacc.prob[index.sia.vacc[t],] -
