@@ -4,7 +4,13 @@
 \alias{GetRubellaSeroprevalence.per.Year}
 \title{Function to get age-specific rubella seroprevalence per year}
 \usage{
-GetRubellaSeroprevalence.per.Year(res, trans, epi.state, no.gens.in.year)
+GetRubellaSeroprevalence.per.Year(
+  res,
+  trans,
+  epi.state,
+  no.gens.in.year,
+  age0is9to12monly = FALSE
+)
 }
 \arguments{
 \item{res}{result data matrix}

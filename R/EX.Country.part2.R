@@ -155,8 +155,8 @@ EX.Country.part2 <- function(uncode,
     }
   } else if (correlation.requested | MR1MR2correlation) {
     EX@MR1MR2correlation <- MR1MR2correlation
-    EX@MR1SIAcorrelation <- MR1SIAcorrelation
-    EX@MR2SIAcorrelation <- MR2SIAcorrelation
+    EX@MR1SIAcorrelation <- as.numeric(MR1SIAcorrelation)
+    EX@MR2SIAcorrelation <- as.numeric(MR2SIAcorrelation)
   }
 
   # Introduction rate
