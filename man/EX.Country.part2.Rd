@@ -31,8 +31,8 @@ EX.Country.part2(
   obj.prob.vsucc = pvacsuccess(1:(20 * 12), get.boulianne.vsucc()),
   sia.timing.in.year = (3/12),
   MR1MR2correlation = FALSE,
-  MR1SIAcorrelation = FALSE,
-  MR2SIAcorrelation = FALSE,
+  MR1SIAcorrelation = 0,
+  MR2SIAcorrelation = 0,
   SIAinacc = FALSE,
   prop.inacc = NULL,
   SIAinefficient = FALSE,
@@ -62,11 +62,11 @@ EX.Country.part2(
 
 \item{year}{numeric; year that pulled DFE demography (population and age structure) from part1}
 
-\item{EXt0}{xxx}
+\item{EXt0}{object from EX.Country.part1()}
 
-\item{time.specific.MR1cov}{xxx}
+\item{time.specific.MR1cov}{numeric; coverage in proportion by year}
 
-\item{time.specific.MR2cov}{xxx}
+\item{time.specific.MR2cov}{numeric; coverage in proportion by year}
 
 \item{time.specific.SIAcov}{xxx}
 

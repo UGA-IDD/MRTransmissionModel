@@ -1,0 +1,103 @@
+#' Negative log-likelihood for measles serology calibration on transformed scale
+#'
+#' Computes the negative binomial log-likelihood of observed measles serological
+#' data (i.e., the negative of the binomial log-likelihood, for minimization
+#' by \code{optim()}). When \code{fix.R0 = NA}, a log-normal prior on \code{R0}
+#' is subtracted, making this MAP rather than pure MLE.
+#'
+#' @param theta numeric vector of transformed parameters. Length depends on
+#'   \code{fix.R0} and \code{fix.rho}: see
+#'   \code{\link{TransformMeaslesSerologyParameters}} for the full layout.
+#'   With defaults (\code{fix.R0 = NA}, \code{fix.rho = 1}): length 2 —
+#'   \code{(log(R0), qlogis(scale.sia))}. When \code{fix.R0} is a number:
+#'   length 1 — \code{(qlogis(scale.sia))}.
+#' @param serodata data.frame containing observed serological data with columns:
+#'   \describe{
+#'     \item{survey.time.point}{model time point index for each observation}
+#'     \item{age.bin.lower}{lower bound of age bin (inclusive)}
+#'     \item{age.bin.upper}{upper bound of age bin (inclusive)}
+#'     \item{n_tested}{number of individuals tested}
+#'     \item{n_positive}{number of seropositive individuals}
+#'   }
+#' @param setup country setup object returned by a setupCountry_* helper.
+#' @param year numeric. Simulation start year (default 1980).
+#' @param t.max numeric. Number of years to simulate.
+#' @param fix.rho numeric scalar or \code{NA}. When a number, \code{rho} is
+#'   fixed at that value. When \code{NA}, \code{rho} is a free parameter.
+#'   Default \code{1}.
+#' @param fix.R0 numeric scalar or \code{NA}. When a number, \code{R0} is
+#'   fixed at that value, \code{theta} has no log element, and the R0 prior is
+#'   not applied. Default \code{NA}.
+#' @param prior.R0.meanlog numeric. Mean of the log-normal prior on \code{R0}
+#'   (log scale). Ignored when \code{fix.R0} is a number. Default \code{log(14)}.
+#' @param prior.R0.sdlog numeric. SD of the log-normal prior on \code{R0}
+#'   (log scale). Ignored when \code{fix.R0} is a number. Default \code{0.4}.
+#' @param age.classes numeric vector. Default \code{c(1:240, seq(252, 1212, 12))}.
+#' @param generation.time numeric. Default \code{0.5}.
+#' @param seasonal.amp numeric. Default \code{0.15}.
+#' @param age0is6to11monly logical. Default \code{FALSE}.
+#' @param eps numeric. Default \code{1e-10}.
+#'
+#' @return numeric scalar. The negative log-likelihood.
+#'
+#' @details
+#' An internal iteration counter is maintained across calls within the same R
+#' session and printed alongside the current parameter values. Re-source the
+#' file to reset the counter.
+#'
+#' @seealso \code{\link{TransformMeaslesSerologyParameters}},
+#'   \code{\link{LogLikMeaslesSerology}}
+#'
+#' @export
+NegLogLikMeaslesSerology.transformed <- local({
+
+  iter <- 0
+
+  function(theta,
+           serodata,
+           setup,
+           year             = 1980,
+           t.max,
+           fix.rho          = 1,
+           fix.R0           = NA,
+           prior.R0.meanlog = log(14),
+           prior.R0.sdlog   = 0.4,
+           age.classes      = c(1:240, seq(252, 1212, 12)),
+           generation.time  = 0.5,
+           seasonal.amp     = 0.15,
+           age0is6to11monly = FALSE,
+           eps              = 1e-10) {
+
+    iter <<- iter + 1
+
+    pars <- TransformMeaslesSerologyParameters(theta, fix.rho = fix.rho,
+                                               fix.R0 = fix.R0)
+
+    cat(sprintf("Iter %d | R0 = %.3f | scale.sia = %.4f | rho = %.4f\n",
+                iter, pars$R0, pars$scale.sia, pars$rho))
+
+    ll <- LogLikMeaslesSerology(
+      R0               = pars$R0,
+      rho              = pars$rho,
+      scale.sia        = pars$scale.sia,
+      serodata         = serodata,
+      setup            = setup,
+      year             = year,
+      t.max            = t.max,
+      age.classes      = age.classes,
+      generation.time  = generation.time,
+      seasonal.amp     = seasonal.amp,
+      age0is6to11monly = age0is6to11monly,
+      eps              = eps
+    )
+
+    ll.prior <- if (is.na(fix.R0)) {
+      dlnorm(pars$R0, meanlog = prior.R0.meanlog,
+             sdlog = prior.R0.sdlog, log = TRUE)
+    } else {
+      0
+    }
+
+    return(-(ll + ll.prior))
+  }
+})

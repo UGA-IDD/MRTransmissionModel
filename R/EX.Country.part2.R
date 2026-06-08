@@ -66,8 +66,8 @@ EX.Country.part2 <- function(uncode,
                              obj.prob.vsucc = pvacsuccess(1:(20*12), get.boulianne.vsucc()),
                              sia.timing.in.year = (3/12),
                              MR1MR2correlation = FALSE,
-                             MR1SIAcorrelation = FALSE,
-                             MR2SIAcorrelation = FALSE,
+                             MR1SIAcorrelation = 0,
+                             MR2SIAcorrelation = 0,
                              SIAinacc = FALSE,
                              prop.inacc = NULL,
                              SIAinefficient = FALSE,
@@ -76,8 +76,18 @@ EX.Country.part2 <- function(uncode,
 
   ## Changing experiment type
   # call to new returns a newly allocated object from the class identified by first argument
-  if (!MR1MR2correlation) EX <- new("experiment.updatedemog.vaccinationchange") #default
-  if (MR1MR2correlation) EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations")
+  correlation.requested <- (MR1SIAcorrelation != 0 | MR2SIAcorrelation != 0)
+
+  if (SIAinefficient & (correlation.requested | MR1MR2correlation))
+    stop("SIAinefficient and correlation are mutually exclusive")
+
+  if (SIAinefficient | SIAinacc) {
+    EX <- new("experiment.updatedemog.vaccinationchange.vaccinationlimitations")
+  } else if (correlation.requested | MR1MR2correlation) {
+    EX <- new("experiment.updatedemog.vaccinationchange.vaccinationcorrelation")
+  } else {
+    EX <- new("experiment.updatedemog.vaccinationchange")
+  }
 
   ## Country name
   name <- countrycode::countrycode(uncode, origin="un", destination="country.name")
@@ -134,17 +144,19 @@ EX.Country.part2 <- function(uncode,
   EX@obj.vcdf.MR2 = obj.vcdf.MR2
   EX@obj.prob.vsucc = obj.prob.vsucc
   EX@sia.timing.in.year = sia.timing.in.year
-  if (MR1MR2correlation | MR1SIAcorrelation | MR2SIAcorrelation | SIAinefficient | SIAinacc){
-    EX@MR1MR2correlation = MR1MR2correlation
-    EX@MR1SIAcorrelation = MR1SIAcorrelation
-    EX@MR2SIAcorrelation = MR2SIAcorrelation
-    EX@SIAinefficient = SIAinefficient
-    EX@SIAinacc = SIAinacc
+  if (SIAinefficient | SIAinacc) {
+    EX@MR1MR2correlation <- MR1MR2correlation
+    EX@MR1SIAcorrelation <- MR1SIAcorrelation != 0
+    EX@MR2SIAcorrelation <- MR2SIAcorrelation != 0
+    EX@SIAinefficient <- SIAinefficient
+    EX@SIAinacc <- SIAinacc
     if (SIAinacc) {
-      #Setting up population always inaccessible to vaccine
-      EX@prop.inacc <- c(rep(prop.inacc, each=no.gens.in.year),  prop.inacc[length(prop.inacc)]) #by time step
-      #EX@prop.inacc = prop.inacc #by year
+      EX@prop.inacc <- c(rep(prop.inacc, each=no.gens.in.year), prop.inacc[length(prop.inacc)])
     }
+  } else if (correlation.requested | MR1MR2correlation) {
+    EX@MR1MR2correlation <- MR1MR2correlation
+    EX@MR1SIAcorrelation <- as.numeric(MR1SIAcorrelation)
+    EX@MR2SIAcorrelation <- as.numeric(MR2SIAcorrelation)
   }
 
   # Introduction rate

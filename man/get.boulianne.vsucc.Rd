@@ -4,7 +4,7 @@
 \alias{get.boulianne.vsucc}
 \title{Get the Boulianne vaccine success object (rubella)}
 \usage{
-get.boulianne.vsucc()
+get.boulianne.vsucc(saturation = 0.97)
 }
 \value{
 xxx

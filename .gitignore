@@ -3,3 +3,7 @@
 .Rdata
 .httr-oauth
 .DS_Store
+.claude/
+src/*.o
+src/*.so
+src/*.dll

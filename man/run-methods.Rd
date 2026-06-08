@@ -7,6 +7,8 @@
 \alias{run,experiment.updatedmog,ANY-method}
 \alias{run,experiment.updatedemog.vaccinationchange-method}
 \alias{run,experiment.updatedmog.vaccinationchange,ANY-method}
+\alias{run,experiment.updatedemog.vaccinationchange.vaccinationcorrelation-method}
+\alias{run,experiment.updatedemog.vaccinationchange.vaccinationcorrelation,ANY-method}
 \alias{run,experiment.updatedemog.vaccinationchange.vaccinationlimitations-method}
 \alias{run,experiment.updatedemog.vaccinationchange.vaccinationlimitations,ANY-method}
 \alias{run,experiment.updatedemog.vaccinationchange.spatial-method}
@@ -24,6 +26,8 @@ run(exper, ...)
 \S4method{run}{experiment.updatedemog}(exper, rescale.WAIFW = TRUE, ...)
 
 \S4method{run}{experiment.updatedemog.vaccinationchange}(exper, rescale.WAIFW = TRUE, ...)
+
+\S4method{run}{experiment.updatedemog.vaccinationchange.vaccinationcorrelation}(exper, rescale.WAIFW = TRUE, ...)
 
 \S4method{run}{experiment.updatedemog.vaccinationchange.vaccinationlimitations}(exper, rescale.WAIFW = TRUE, ...)
 

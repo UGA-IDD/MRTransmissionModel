@@ -619,6 +619,21 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationlimitations.spatia
          contains=c("experiment.updatedemog.vaccinationchange.vaccinationlimitations"))
 
 
+#' Class for an experiment with RI-SIA dose correlation
+#'
+#' @slot MR1MR2correlation logical.
+#' @slot MR1SIAcorrelation numeric.
+#' @slot MR2SIAcorrelation numeric.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange.vaccinationcorrelation-class
+setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation",
+         slots = list(MR1MR2correlation = "logical",
+                      MR1SIAcorrelation = "numeric",
+                      MR2SIAcorrelation = "numeric"),
+         contains = "experiment.updatedemog.vaccinationchange")
+
 
 #' Generate of object of class experiment result (sim.result)
 #'

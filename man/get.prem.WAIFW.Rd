@@ -18,13 +18,13 @@ get.prem.WAIFW(
 
 \item{uncode}{country code}
 
-\item{other.contact.matrix}{xxx}
+\item{other.contact.matrix}{boolean}
 
 \item{bandwidth}{desired smooth bandwidth - default=c(3,3)}
 
-\item{adjustment_start_year}{for 202110gavi_v3 given that Shaun's R0 estimates are adjusted to 1980 pop structure}
+\item{adjustment_start_year}{boolean - for 202110gavi_v3 given that Shaun's R0 estimates are adjusted to 1980 pop structure}
 
-\item{year}{xxx}
+\item{year}{numeric - year for which doing the adjustment re: adjustment_start_year}
 }
 \value{
 a WAIFW matrix based on the Polymod results from chosen location with row and colnames indicating age classes
