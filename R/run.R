@@ -438,6 +438,247 @@ setMethod("run",
 )
 
 #' @rdname run-methods
+#' @aliases run,experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse,ANY-method
+setMethod(
+  "run",
+  "experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse",
+  function(exper, rescale.WAIFW = TRUE) {
+
+    state <- exper@state.t0
+
+    if (rescale.WAIFW && length(exper@R0) > 0) {
+      exper@trans@waifw <- scaleWAIFW(exper@R0,
+                                       state, exper@trans@waifw,
+                                       frequency.dep = exper@trans@frequency.dep,
+                                       suscept.state = exper@trans@s.inds[1])
+    }
+
+    numTimeSteps <- round((exper@t.max - exper@t.min) / exper@step.size) + 1
+
+    if (!is.null(exper@season.obj)) {
+      mults <- get.seasonal.mult(
+        exper@t0.doy / 365 + (1:numTimeSteps - 1) * exper@step.size,
+        exper@season.obj)
+    } else {
+      mults <- rep(1, numTimeSteps)
+    }
+
+    tmp.trans <- exper@trans
+
+    rc    <- matrix(ncol = numTimeSteps, nrow = nrow(state))
+    rc[, 1] <- state
+
+    births.each.timestep <- growth.rate.each.timestep <- rep(NA, numTimeSteps)
+    births.each.timestep[1] <- tmp.trans@birth.rate
+
+    # --- Routine vaccination schedule (unchanged from parent class) --
+
+    routine <- get.routine.time.age.specific(
+      time.step             = exper@step.size * 12,
+      age.classes           = exper@trans@age.class,
+      time.specific.MR1cov  = exper@time.specific.MR1cov,
+      age.min.MR1           = exper@time.specific.min.age.MR1,
+      age.max.MR1           = exper@time.specific.max.age.MR1,
+      time.specific.MR2cov  = exper@time.specific.MR2cov,
+      age.min.MR2           = exper@time.specific.min.age.MR2,
+      age.max.MR2           = exper@time.specific.max.age.MR2,
+      obj.vcdf.MR1          = exper@obj.vcdf.MR1,
+      obj.vcdf.MR2          = exper@obj.vcdf.MR2,
+      obj.prob.vsucc        = exper@obj.prob.vsucc,
+      MR1MR2correlation     = exper@MR1MR2correlation)
+
+    routine.intro <- rep(0, numTimeSteps)
+    if (any(exper@time.specific.MR1cov != 0))
+      routine.intro[min(which(exper@time.specific.MR1cov > 0)) * (1 / exper@step.size) + 1] <- 1
+    if (any(exper@time.specific.MR2cov != 0))
+      routine.intro[min(which(exper@time.specific.MR2cov > 0)) * (1 / exper@step.size) + 1] <- 1
+
+    index.routine.vacc <- c(1, rep(1:nrow(routine$age.time.specific.routine),
+                                   each = (numTimeSteps - 1) / exper@t.max))
+    if (length(index.routine.vacc) < numTimeSteps)
+      index.routine.vacc[(length(index.routine.vacc) + 1):numTimeSteps] <-
+        index.routine.vacc[length(index.routine.vacc)]
+
+    # --- Scheduled SIA campaigns (unchanged from parent class) --
+
+    SIA <- get.sia.time.age.specific(
+      age.classes          = exper@trans@age.class,
+      time.specific.SIAcov = exper@time.specific.SIAcov,
+      age.min.sia          = exper@time.specific.min.age.SIA,
+      age.max.sia          = exper@time.specific.max.age.SIA,
+      obj.prob.vsucc       = exper@obj.prob.vsucc)
+
+    index.sia.vacc <- rep(NA, numTimeSteps)
+    year.sia <- which(exper@time.specific.SIAcov != 0)
+    index.sia.vacc[(year.sia - 1) * (numTimeSteps - 1) / exper@t.max +
+                   round(exper@sia.timing.in.year * (numTimeSteps - 1) / exper@t.max)] <- year.sia
+    sia.times <- ifelse(!is.na(index.sia.vacc), 1, 0)
+
+    MR1.fail.each.timestep <- MR2.fail.each.timestep <- SIA.fail.each.timestep <-
+      rep(0, numTimeSteps)
+    MR1.fail.each.timestep[1] <- routine$prop.fail.MR1[1]
+    MR2.fail.each.timestep[1] <- routine$prop.fail.MR2[1]
+
+    # --- OBR pre-computation --
+
+    or.times  <- rep(0, numTimeSteps)
+    last.or.t <- -Inf
+    age.classes <- exper@trans@age.class
+
+    # Row indices of I compartment for the trigger age group
+    if (is.na(exper@or.trigger.age.lower) || is.na(exper@or.trigger.age.upper)) {
+      trigger.age.pos <- seq_along(age.classes)
+    } else {
+      trigger.age.pos <- which(age.classes > exper@or.trigger.age.lower &
+                               age.classes <= exper@or.trigger.age.upper)
+    }
+    trigger.i.inds <- exper@trans@i.inds[trigger.age.pos]
+
+    # All compartment rows for the trigger age group (for incidence denominator)
+    trigger.pop.inds <- c(exper@trans@m.inds[trigger.age.pos],
+                          exper@trans@s.inds[trigger.age.pos],
+                          exper@trans@i.inds[trigger.age.pos],
+                          exper@trans@r.inds[trigger.age.pos],
+                          exper@trans@v.inds[trigger.age.pos])
+
+    # Age-specific OBR vaccination probability vector
+    or.vacc.age.pos <- which(age.classes > exper@or.vacc.age.lower &
+                             age.classes <= exper@or.vacc.age.upper)
+    or.vacc.prob <- rep(0, exper@trans@n.age.class)
+    or.vacc.prob[or.vacc.age.pos] <-
+      exper@or.vacc.coverage * exper@obj.prob.vsucc@prob.vsucc[or.vacc.age.pos]
+
+    # Earliest time step at which OBR can trigger: the later of
+    # (a) enough history to fill the surveillance window, and
+    # (b) the user-specified or.start.timestep (e.g. to prevent OBR before a given year).
+    or.min.t <- max(exper@or.total.delay + exper@or.trigger.window,
+                    exper@or.start.timestep)
+
+    for (t in 2:numTimeSteps) {
+
+      if (length(exper@intro.rate) > 1)
+        tmp.trans@introduction.rate <- rep(exper@intro.rate[index.routine.vacc[t]],
+                                           exper@trans@n.age.class)
+
+      if (!is.array(mults)) {
+        tmp.trans@waifw <- exper@trans@waifw * mults[t]
+      } else {
+        tmp.trans@waifw <- exper@trans@waifw * mults[,, t]
+      }
+
+      if (!is.na(exper@pop.rescale.each.timestep[t]))
+        state <- exper@pop.rescale.each.timestep[t] * (state / sum(state))
+
+      if (length(exper@births.per.1000.each.timestep) > 1) {
+        tmp.trans@birth.rate <- exper@births.per.1000.each.timestep[t] * sum(state) / 1000
+      } else {
+        tmp.trans@birth.rate <- exper@trans@birth.rate * sum(rc[, t - 1]) / sum(exper@state.t0)
+      }
+      births.each.timestep[t] <- tmp.trans@birth.rate
+
+      if (!is.na(exper@surv.each.timestep[1, 1])) {
+        tmp.trans@age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(
+          tmp.trans          = tmp.trans,
+          maternal.obj       = exper@maternal.obj,
+          surv.at.timestep.t = exper@surv.each.timestep[, t])
+      }
+
+      # --- Routine + scheduled SIA vaccination (identical to parent class) --
+
+      if (!is.na(index.sia.vacc[t])) {
+        r       <- routine$age.time.specific.routine[index.routine.vacc[t], ]
+        s       <- SIA$age.time.specific.SIA[index.sia.vacc[t], ]
+        rho.vec <- rep(0, exper@trans@n.age.class)
+        MR1.age.range <- exper@time.specific.min.age.MR1[index.routine.vacc[t]]:
+                         exper@time.specific.max.age.MR1[index.routine.vacc[t]]
+        MR2.age.range <- exper@time.specific.min.age.MR2[index.routine.vacc[t]]:
+                         exper@time.specific.max.age.MR2[index.routine.vacc[t]]
+        rho.vec[MR1.age.range] <- exper@MR1SIAcorrelation
+        rho.vec[MR2.age.range] <- exper@MR2SIAcorrelation
+        tmp.trans@vac.per@pvacc.in.age.class <-
+          r + s - r * s - rho.vec * sqrt(pmax(0, r * (1 - r) * s * (1 - s)))
+        MR1.fail.each.timestep[t] <- routine$prop.fail.MR1[index.routine.vacc[t]]
+        MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[index.routine.vacc[t]]
+        SIA.fail.each.timestep[t] <- SIA$prop.fail.SIA[index.sia.vacc[t]]
+      } else {
+        tmp.trans@vac.per@pvacc.in.age.class <-
+          routine$age.time.specific.routine[index.routine.vacc[t], ]
+        MR1.fail.each.timestep[t] <- routine$prop.fail.MR1[index.routine.vacc[t]]
+        MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[index.routine.vacc[t]]
+      }
+
+      # --- OBR trigger check ---
+      #
+      # Trigger metric = sum of I compartment in the trigger age group across
+      # the surveillance window [t.start, t.end], where:
+      #   t.end   = t - or.total.delay                      (most recent step we "know about")
+      #   t.start = t.end - or.trigger.window + 1           (first step of window, inclusive)
+      #
+      # Using I directly (rather than delta R) avoids the one-step I->R transition lag.
+      # Summing across the window gives cumulative infectious person-steps, which
+      # is proportional to cumulative incidence over the period.
+      # For "incidence", the denominator is the trigger-age population at t.end.
+
+      if (t >= or.min.t && (t - last.or.t) >= exper@or.min.interval) {
+
+        t.end   <- t - exper@or.total.delay
+        t.start <- t.end - exper@or.trigger.window + 1
+
+        cum.I <- sum(rc[trigger.i.inds, t.start:t.end])
+
+        metric <- if (exper@or.threshold.type == "count") {
+          cum.I
+        } else {   # "incidence" = summed I / population in trigger age group at t.end
+          pop.at.t.end <- sum(rc[trigger.pop.inds, t.end])
+          if (pop.at.t.end > 0) cum.I / pop.at.t.end else 0
+        }
+
+        if (metric >= exper@or.threshold.value) {
+          # Add OBR campaign on top of whatever vaccination is already set this step.
+          # Independent-doses formula: p + q - p*q.
+          p <- tmp.trans@vac.per@pvacc.in.age.class
+          tmp.trans@vac.per@pvacc.in.age.class <- p + or.vacc.prob - p * or.vacc.prob
+          or.times[t] <- 1
+          last.or.t   <- t
+        }
+      }
+
+      N0    <- sum(state)
+      state <- next.ID.state(state, tmp.trans)
+      NT    <- sum(state)
+      growth.rate.each.timestep[t] <- log(NT / N0)
+
+      rc[, t] <- state
+    }
+
+    result.rc <- new(
+      "sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
+      data                      = rc,
+      m.inds                    = exper@trans@m.inds,
+      s.inds                    = exper@trans@s.inds,
+      i.inds                    = exper@trans@i.inds,
+      r.inds                    = exper@trans@r.inds,
+      v.inds                    = exper@trans@v.inds,
+      t                         = exper@t.min + (1:numTimeSteps - 1) * exper@step.size,
+      age.class                 = exper@trans@age.class,
+      births.each.timestep      = births.each.timestep,
+      growth.rate.each.timestep = growth.rate.each.timestep,
+      MR1.fail.each.timestep    = MR1.fail.each.timestep,
+      MR2.fail.each.timestep    = MR2.fail.each.timestep,
+      SIA.fail.each.timestep    = SIA.fail.each.timestep,
+      routine.intro             = routine.intro,
+      sia.times                 = sia.times,
+      or.times                  = or.times)
+
+    rc <- new("experiment.result",
+              experiment.def = exper,
+              result         = result.rc)
+
+    return(rc)
+  }
+)
+
+#' @rdname run-methods
 #' @aliases run,experiment.updatedemog.vaccinationchange.vaccinationlimitations,ANY-method
 setMethod("run",
           "experiment.updatedemog.vaccinationchange.vaccinationlimitations",

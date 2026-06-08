@@ -635,6 +635,39 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation",
          contains = "experiment.updatedemog.vaccinationchange")
 
 
+#' Class for an outbreak response experiment
+#'
+#' @slot or.total.delay numeric. Total time steps from end of surveillance window to response.
+#' @slot or.trigger.window numeric. Number of time steps to sum I over for trigger metric.
+#' @slot or.threshold.value numeric. Threshold for trigger metric.
+#' @slot or.threshold.type character. "count" or "incidence".
+#' @slot or.trigger.age.lower numeric. Lower age bound for surveillance trigger (months); NA = all ages.
+#' @slot or.trigger.age.upper numeric. Upper age bound for surveillance trigger (months); NA = all ages.
+#' @slot or.vacc.age.lower numeric. Lower age bound for OBR vaccination campaign (months).
+#' @slot or.vacc.age.upper numeric. Upper age bound for OBR vaccination campaign (months).
+#' @slot or.vacc.coverage numeric. OBR campaign coverage in [0,1].
+#' @slot or.min.interval numeric. Minimum time steps between successive OBR triggers.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse-class
+setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse",
+         slots = list(
+           or.total.delay       = "numeric",
+           or.trigger.window    = "numeric",
+           or.threshold.value   = "numeric",
+           or.threshold.type    = "character",
+           or.trigger.age.lower = "numeric",
+           or.trigger.age.upper = "numeric",
+           or.vacc.age.lower    = "numeric",
+           or.vacc.age.upper    = "numeric",
+           or.vacc.coverage     = "numeric",
+           or.min.interval      = "numeric",
+           or.start.timestep    = "numeric"
+         ),
+         contains = "experiment.updatedemog.vaccinationchange.vaccinationcorrelation")
+
+
 #' Generate of object of class experiment result (sim.result)
 #'
 #' Class to hold SIR simulation results. Hold the results of the simulation as
@@ -754,6 +787,19 @@ setClass("sim.results.MSIRV.update.demog.vaccine.change",
                       SIA.fail.each.timestep = "ANY"
          ),
          contains="sim.results.MSIRV.update.demog")
+
+
+#' Holds the results of an outbreak response simulation
+#'
+#' @slot or.times numeric. Binary vector; 1 at each time step an OBR campaign fired.
+#'
+#' @export
+#' @docType class
+#' @rdname sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse-class
+setClass("sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
+         slots = list(or.times = "numeric"),
+         contains = "sim.results.MSIRV.update.demog.vaccine.change")
+
 
 #' Holds the results of an experiment along with the experiment definition
 #'
