@@ -1,0 +1,820 @@
+---
+title: "Outbreak Response Scenario Modeling — Bootcamp"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = "..")
+```
+
+# Overview
+
+This vignette walks through how to set up, run, and compare outbreak response (OBR) experiments using the `MRTransmissionModel` package. By the end you should be able to:
+
+1. Read and interpret the `setup` object (country demography and vaccination history)
+2. Understand every arguments in `EX.Country.part2.OR()`
+3. Define a baseline scenario and one or more OBR scenarios
+4. Compare scenarios and interpret the results
+5. Decide how far into the future to project
+6. Know when to use deterministic vs. stochastic mode
+
+---
+
+# 1. Load the package
+
+```{r load}
+library(MRTransmissionModel)
+source("R/setClasses.R")        # new OBR classes (not yet in installed package)
+source("R/run.R")               # new OBR run method
+source("R/EX.Country.part2.OR.R")  # new helper function
+```
+
+---
+
+# 2. The setup object
+
+`setupCountry.Nov2023()` pulls together all the country-specific inputs you need: demography, vaccination coverage history, and SIA timing. Everything downstream flows from this object.
+
+```{r setup-object}
+setup <- setupCountry.Nov2023(country = "Zambia")
+names(setup)
+```
+
+## 2.1 Demography
+
+### Crude birth rate over time
+
+`cbr.1950.2100` is the crude birth rate (births per 1000 population per year) for every year from 1950 to 2100. The model uses this to update the birth rate at each time step.
+
+```{r cbr-plot}
+years.demog <- 1950:2100
+plot(years.demog, setup$cbr.1950.2100,
+     type = "l", lwd = 2, col = "steelblue",
+     xlab = "Year", ylab = "Crude birth rate (per 1000)",
+     main = "Zambia crude birth rate 1950–2100")
+abline(v = c(1980, 2025), lty = 2, col = "gray50")
+```
+
+### Total population over time
+
+`pop.total.1950.2100` is the total population for each year. This is used to rescale the simulated population at specified time points so it does not drift from known values.
+
+```{r pop-plot}
+plot(years.demog, setup$pop.total.1950.2100 / 1e6,
+     type = "l", lwd = 2, col = "steelblue",
+     xlab = "Year", ylab = "Population (millions)",
+     main = "Zambia total population 1950–2100")
+abline(v = c(1980, 2025), lty = 2, col = "gray50")
+```
+
+## 2.2 Vaccination coverage
+
+Coverage vectors all run from 1980 to 2100. Years beyond the last data year (2022) are filled forward using the mean of 2018, 2019, and 2022 (COVID-robust average).
+
+```{r coverage-plot}
+years.vac <- 1980:2100
+
+plot(years.vac, setup$MCV1.coverage.1980to2100,
+     type = "l", lwd = 2, col = "steelblue",
+     ylim = c(0, 1), xlab = "Year", ylab = "Coverage",
+     main = "Zambia vaccination coverage 1980–2100")
+lines(years.vac, setup$MCV2.coverage.1980to2100, lwd = 2, col = "darkorange")
+lines(years.vac, setup$measlesSIA.coverage.1980to2100, lwd = 2, col = "forestgreen",
+      type = "h")  # vertical lines — SIAs are single-year events
+legend("topleft",
+       legend = c("MCV1 (routine dose 1)", "MCV2 (routine dose 2)", "SIA"),
+       col = c("steelblue", "darkorange", "forestgreen"),
+       lwd = 2, bty = "n")
+```
+
+### SIA age targets
+
+```{r sia-ages}
+sia.years <- years.vac[setup$measlesSIA.coverage.1980to2100 > 0]
+sia.cov   <- setup$measlesSIA.coverage.1980to2100[setup$measlesSIA.coverage.1980to2100 > 0]
+sia.amin  <- setup$age.min.sia.measles[setup$measlesSIA.coverage.1980to2100 > 0]
+sia.amax  <- setup$age.max.sia.measles[setup$measlesSIA.coverage.1980to2100 > 0]
+
+data.frame(year     = sia.years,
+           coverage = round(sia.cov, 2),
+           age.min  = sia.amin,
+           age.max  = sia.amax)
+```
+
+## 2.3 Vaccine success by age
+
+`pvacsuccess()` converts a vaccine efficacy curve into age-specific probabilities that a vaccine dose results in seroconversion. The Boulianne curve peaks around 12–15 months and falls off at younger ages due to maternal antibody interference.
+
+This matters for OBR because campaigns targeting very young infants will have lower effective coverage than campaigns targeting older children, even if the nominal coverage is the same.
+
+```{r vsucc-plot}
+age.classes <- c(1:240, seq(252, 1212, 12))  # months
+vsucc.obj   <- pvacsuccess(age.classes, get.boulianne.vsucc())
+
+plot(vsucc.obj@ages, vsucc.obj@prob.vsucc,
+     type = "l", lwd = 2, col = "steelblue",
+     xlim = c(0, 159),
+     xlab = "Age (months)", ylab = "Probability of vaccine success",
+     main = "Vaccine success probability by age (Boulianne curve)")
+abline(v = c(9, 12, 15, 24), lty = 2, col = "gray60")
+text(9, 0.1, "9m\n(MR1 min)", cex = 0.7, adj = 0)
+text(15, 0.1, "15m\n(MR2 min)", cex = 0.7, adj = 0)
+```
+
+## 2.4 MCV1 age-at-vaccination distribution
+
+`get.MR1cdf.survival()` builds the cumulative distribution of ages at which MCV1 is actually received, accounting for the fact that children do not all receive it on the day they turn 9 months. The distribution is parameterized from country-specific data.
+
+```{r vcdf-plot}
+vcdf.MR1 <- get.MR1cdf.survival(uncode = setup$uncode, 1, 24)
+vcdf.MR2 <- get.vcdf.normal(25, 36)
+
+par(mfrow = c(1, 2))
+plot(vcdf.MR1@ages, vcdf.MR1@cdf,
+     type = "l", lwd = 2, col = "steelblue",
+     xlab = "Age (months)", ylab = "Cumulative fraction vaccinated",
+     main = "MCV1 age-at-vaccination CDF")
+plot(vcdf.MR2@ages, vcdf.MR2@cdf,
+     type = "l", lwd = 2, col = "darkorange",
+     xlab = "Age (months)", ylab = "Cumulative fraction vaccinated",
+     main = "MCV2 age-at-vaccination CDF")
+par(mfrow = c(1, 1))
+```
+
+---
+
+# 3. Step 1 — `EX.Country.part1()`: running out the transients
+
+`EX.Country.part1()` spins the model up from a disease-free equilibrium for 20 years so the age structure, maternal immunity, and infection dynamics stabilize before the vaccination scenario begins. The result (`EXt0`) is the shared starting point for all scenarios — run it once and reuse it.
+
+```{r part1, cache=TRUE}
+year  <- 1980
+
+EXt0 <- EX.Country.part1(
+  uncode                         = setup$uncode,
+  generation.time                = 0.5,
+  age.classes                    = c(1:60, seq(72, 1212, 12)), #c(1:240, seq(252, 1212, 12)),
+  maternal.decay.rt              = 0.45,
+  exponent                       = 0.97,
+  frequency.dep                  = TRUE,
+  yr.births.per.1000.acrossyears = rep(setup$cbr.1950.2100[year - 1950 + 1], 20),
+  intro.rate                     = 1 / 24 / 320,
+  tot.pop                        = NULL,
+  targeted.intro                 = FALSE,
+  R0                             = 14,
+  t.max                          = 20,
+  get.births                     = setup$get.births.here,
+  seasonal.amp                   = 0.15,
+  flat.WAIFW                     = FALSE,
+  country.specific.WAIFW         = TRUE,
+  vynnycky.waifw                 = FALSE,
+  vynnycky.waifw.betas           = c(2, 1),
+  asdr.object                    = setup$asdr.object,
+  year                           = year,
+  use_montagu_demog              = FALSE
+)
+```
+
+---
+
+# 4. Step 2 — `EX.Country.part2.OR()`: running an Outbreak Response (OBR) scenario
+
+`EX.Country.part2.OR()` takes the equilibrated state from `EXt0` and runs the model forward under a specified vaccination + OBR scenario. We walk through every argument for a single scenario, then build comparisons below.
+
+## 4.0 How the OBR arguments work together
+
+The OBR arguments fall into three groups.
+
+**Timing** — `or.confirmation.delay + or.response.delay = or.total.delay`. At step `t`, the trigger looks backward at cases from steps `[t - or.total.delay - or.trigger.window + 1, t - or.total.delay]`. If the metric reaches `or.n.confirmations.target`, a pending state is set. The campaign fires `or.response.delay` steps later. During the response window, case age distributions accumulate to inform campaign targeting.
+
+| Argument | Default | Description |
+|---|---|---|
+| `or.confirmation.delay` | required | Steps from end of surveillance window to trigger recognition (confirmation lag) |
+| `or.response.delay` | required | Steps from trigger to campaign delivery; case age distribution accumulates during this window |
+| `or.trigger.window` | required | Number of steps summed for the trigger metric |
+
+**Trigger** — `or.trigger.mode` controls what is summed over the surveillance window. OBR triggers when `metric >= or.n.confirmations.target`.
+
+| Argument | Default | Description |
+|---|---|---|
+| `or.trigger.mode` | `"I_scaled"` | `"I_scaled"`: metric = sum(I × reporting rate); `"confirmed"`: metric = sum of estimated confirmed cases from observational model |
+| `or.reporting.rate` | `1` | Scales true infections toward observed scale; scalar or per-age vector |
+| `or.n.confirmations.target` | `5` | Threshold: OBR triggers when metric ≥ this value; also the per-step testing stop rule in `"confirmed"` mode |
+| `or.trigger.age.lower` | `NA` | Lower age bound (months) for surveillance; NA = all ages |
+| `or.trigger.age.upper` | `NA` | Upper age bound (months) for surveillance; NA = all ages |
+| `or.non.meas.cases.by.age.month` | empty matrix | Age × 12-month matrix of non-measles suspected cases; required for `"confirmed"` mode |
+| `or.Se` | `NA` | Diagnostic sensitivity; required for `"confirmed"` mode |
+| `or.Sp` | `NA` | Diagnostic specificity; required for `"confirmed"` mode |
+| `or.start.timestep` | `1` | Earliest step at which OBR can trigger |
+| `or.min.interval` | required | Minimum steps between successive triggers |
+
+**Response campaign** — age targeting is either fixed (`or.vacc.age.upper`) or derived from the cumulative CDF of the case age distribution accumulated during the response window (`or.vacc.agedist.percentile`). Set `or.vacc.coverage = 0` to disable OBR without changing any other argument.
+
+| Argument | Default | Description |
+|---|---|---|
+| `or.vacc.agedist.percentile` | `NA` | Percentile of the cumulative case age CDF used as upper vaccination bound; used when `or.vacc.age.upper` is NA |
+| `or.vacc.age.lower` | `0` | Vaccination floor (months); CDF always counts from age 0 regardless |
+| `or.vacc.age.upper` | `NA` | Fixed upper vaccination age (months); if specified, overrides `or.vacc.agedist.percentile` |
+| `or.vacc.coverage` | required | Campaign coverage in [0,1]; set to 0 to disable OBR |
+
+**Within-step timing** — at each step: trigger check (looks backward) → campaign delivery if response delay elapsed → state update → case age accumulation for pending response window. In `"confirmed"` mode the per-step confirmed case count is stored after the state update, so future trigger evaluations see the post-campaign case trajectory.
+
+**The observational model runs inline in the loop at every timestep** (when `or.Se`, `or.Sp`, and `or.non.meas.cases.by.age.month` are provided). It serves two roles simultaneously:
+
+1. *Trigger metric*: if `or.trigger.mode == "confirmed"`, the per-step confirmed case count (summed across the trigger age group) is derived from the inline obs model matrices and stored in `confirmed.trigger[]` for use in future trigger evaluations.
+2. *Response window accumulation*: age-specific cases are drawn from the inline obs model matrices and accumulated into `pending.case.by.age` — using confirmed cases (TP + FP_test + TP_clinical + FP_clinical) when `or.trigger.mode == "confirmed"`, or suspected cases (I×r + non-measles) when `or.trigger.mode == "I_scaled"`. At campaign delivery, the CDF of this vector determines the upper vaccination age bound.
+
+The six 6-category age × timestep output matrices are stored as slots in the result object and are available immediately after `run()` completes: `result@result@obs.TP`, `result@result@obs.FN_test`, `result@result@obs.FP_test`, `result@result@obs.TN`, `result@result@obs.TP_clinical`, `result@result@obs.FP_clinical`.
+
+## 4.1 Argument walkthrough — one complete scenario
+
+```{r part2-single, cache=TRUE}
+t.max <- 45
+
+result.obr <- EX.Country.part2.OR(
+
+  # --- Country and time horizon ---
+  uncode                         = setup$uncode,
+  year                           = year,
+  # Calendar year the simulation starts from (must match part1).
+
+  t.max                          = t.max,
+  # Years to simulate forward from year. Here 1980 + 45 = 2025.
+  # All coverage vectors must be at least this long.
+
+  EXt0                           = EXt0,
+  # The equilibrated starting state from EX.Country.part1().
+
+  # --- Time step and population ---
+
+  generation.time                = 0.5,
+  # Length of one time step in months (must match part1 — determines step size throughout).
+
+  pop.rescale                    = setup$pop.total.1950.2100[
+                                     seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                       = seq(1990, (year + t.max - 10), 10) - year,
+  # Every 10 years, rescale the simulated population to match the WPP total.
+  # Prevents the simulated population drifting from reality over long runs.
+  # pop.time is in years relative to the start of the simulation.
+
+  is.stochastic                  = FALSE,
+  # FALSE = deterministic (fast, reproducible, no extinction).
+  # TRUE  = stochastic (run multiple replicates, allows extinction).
+  # See Section 6 for discussion.
+
+  rescale.WAIFW                  = FALSE,
+  # If TRUE, re-scales the WAIFW matrix to match R0 at the start of part2.
+  # Usually FALSE — the scaling was already done in part1.
+
+  # --- Demography ---
+
+  yr.births.per.1000.acrossyears = setup$cbr.1950.2100[
+                                     (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  # One crude birth rate per year of the simulation (length = t.max + 1).
+  # Here we use the actual WPP trajectory — births decline as Zambia develops.
+
+  asdr.object                    = setup$asdr.object,
+  # Age-specific death rates. Used to update the survival matrix each year.
+
+  # --- Routine vaccination (MCV1 and MCV2) ---
+
+  time.specific.MR1cov           = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov           = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  # One value per year — the proportion of the target age group receiving
+  # each routine dose. Drawn from WUENIC estimates.
+
+  time.specific.min.age.MR1      = rep(9,  t.max),
+  time.specific.max.age.MR1      = rep(24, t.max),
+  # Age window (months) for MCV1 delivery. Children aged 9-24 months are eligible.
+
+  time.specific.min.age.MR2      = rep(25, t.max),
+  time.specific.max.age.MR2      = rep(36, t.max),
+  # Age window for MCV2. 25-36 months.
+
+  obj.vcdf.MR1                   = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                   = get.vcdf.normal(25, 36),
+  # CDF of ages at which each dose is actually received, within the age window.
+  # MCV1 uses the country-specific survival-based distribution.
+  # MCV2 uses a normal distribution centered at 15-21 months within its window.
+
+  obj.prob.vsucc                 = pvacsuccess(EXt0@trans@age.class,
+                                               get.boulianne.vsucc()),
+  # Age-specific probability that a dose leads to seroconversion (see plot above).
+
+  # --- Scheduled SIA campaigns ---
+
+  time.specific.SIAcov           = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.min.age.SIA      = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
+  time.specific.max.age.SIA      = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
+  # Coverage and age targets for pre-planned SIA campaigns, by year.
+  # Zero in years without a campaign.
+
+  sia.timing.in.year             = 3 / 12,
+  # Fraction of the year at which the SIA fires (March = 3/12).
+
+  # --- Dose correlation ---
+
+  MR1MR2correlation              = TRUE,
+  # TRUE = children who receive MCV1 are more likely to also receive MCV2.
+  # Realistic — both doses tend to go to the same children (the "easy to reach").
+
+  MR1SIAcorrelation              = FALSE,
+  MR2SIAcorrelation              = FALSE,
+  # Correlation between routine doses and SIA doses.
+  # FALSE (= 0) = independent. Positive values mean the same children are
+  # reached by both routine and SIA, reducing the net additional coverage.
+  # Negative values mean SIAs preferentially reach unvaccinated children.
+
+  # --- Introduction rate ---
+
+  intro.rate                     = 1 / 24 / 320,
+  # Rate at which new infections are seeded per age class per time step.
+  # Can differ from part1. Lower values reduce background noise in the trigger metric;
+  # higher values ensure the model does not go extinct between epidemics.
+
+  # --- OBR trigger definition ---
+
+  or.confirmation.delay          = 2,
+  # Time steps from end of surveillance window to case confirmation (lab + reporting).
+  # 2 steps = 1 month.
+
+  or.response.delay              = 2,
+  # Time steps from confirmation to campaign delivery (mobilization + logistics).
+  # 2 steps = 1 month. or.total.delay = or.confirmation.delay + or.response.delay = 4.
+
+  or.trigger.window              = 2,
+  # Number of time steps over which cumulative I is summed for the trigger metric.
+  # 2 steps = 1 month of summed infectious prevalence.
+  # Shorter window = more reactive (responds to recent spikes).
+  # Longer window = more smoothed (filters out noise, responds to sustained outbreaks).
+
+  or.trigger.age.lower           = 6,
+  or.trigger.age.upper           = 179,
+  # Surveillance is restricted to children aged 6 months - 14 years.
+  # NA for both = watch all age classes.
+  # Focusing surveillance on children reflects where measles is detected first.
+
+  # --- OBR response campaign ---
+
+  or.vacc.age.lower              = 6,
+  or.vacc.age.upper              = 59,
+  # Campaign targets children aged 6 months - 4 years.
+  # OBR campaigns typically target children because they drive transmission.
+  # Lower bound of 6 months reflects minimum vaccine-eligible age.
+
+  or.vacc.coverage               = 0.85,
+  # Nominal campaign coverage. Applied as independent doses on top of whatever
+  # routine/SIA vaccination is already scheduled at the same time step:
+  #   effective_prob = p_routine + p_obr - p_routine * p_obr
+  # So OBR reaches some already-vaccinated children — net gain is less than 0.85.
+
+  or.min.interval                = 48,
+  # Minimum time steps between successive OBR triggers = 2 years.
+  # Prevents the model from triggering back-to-back campaigns during a prolonged
+  # outbreak that stays above threshold.
+
+  or.start.timestep              = (2020 - year) * 24 + 1
+  # OBR cannot trigger before time step (2020-1980)*24+1 = 961.
+  # Use this to represent: OBR program not yet established, political will,
+  # or a period when you want to measure "what if OBR had been available from 2020."
+  # Formula: (target_year - start_year) * steps_per_year + 1
+)
+```
+
+---
+
+# 5. Building and comparing scenarios
+
+## 5.1 The baseline question
+
+Before adding OBR, you need a baseline to compare against. The right baseline depends on your research question:
+
+| Baseline | When to use |
+|----------|-------------|
+| No vaccination at all | Measuring total vaccination impact (rarely what you want for OBR) |
+| Routine only (MCV1 + MCV2) | Isolating the marginal contribution of SIA + OBR |
+| Routine + SIA | Isolating the marginal contribution of OBR alone |
+| Routine + SIA + OBR (low coverage) | Comparing OBR coverage levels |
+
+For most OBR questions, **routine + SIA without OBR** is the right baseline. That isolates the effect of the reactive campaign.
+
+
+## 5.2 Running all four baseline scenarios
+
+```{r sc1, cache=TRUE}
+# Scenario 1: No vaccination (OBR disabled via or.vacc.coverage = 0)
+sc1 <- EX.Country.part2.OR(
+  uncode                         = setup$uncode,
+  generation.time                = 0.5,
+  pop.rescale                    = setup$pop.total.1950.2100[
+                                     seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                       = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                  = FALSE,
+  t.max                          = t.max,
+  rescale.WAIFW                  = FALSE,
+  yr.births.per.1000.acrossyears = setup$cbr.1950.2100[
+                                     (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                    = setup$asdr.object,
+  year                           = year,
+  EXt0                           = EXt0,
+  time.specific.MR1cov           = rep(0, t.max),
+  time.specific.MR2cov           = rep(0, t.max),
+  time.specific.SIAcov           = rep(0, t.max),
+  time.specific.min.age.MR1      = rep(9,  t.max),
+  time.specific.max.age.MR1      = rep(24, t.max),
+  time.specific.min.age.MR2      = rep(25, t.max),
+  time.specific.max.age.MR2      = rep(36, t.max),
+  time.specific.min.age.SIA      = rep(0,  t.max),
+  time.specific.max.age.SIA      = rep(0,  t.max),
+  obj.vcdf.MR1                   = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                   = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                 = pvacsuccess(EXt0@trans@age.class,
+                                               get.boulianne.vsucc()),
+  sia.timing.in.year             = 3 / 12,
+  MR1MR2correlation              = TRUE,
+  MR1SIAcorrelation              = FALSE,
+  MR2SIAcorrelation              = FALSE,
+  intro.rate                     = 1 / 24 / 320,
+  or.confirmation.delay          = 2,
+  or.response.delay              = 2,
+  or.trigger.window              = 2,
+  or.trigger.age.lower           = 0,
+  or.trigger.age.upper           = 168,
+  or.vacc.age.lower              = 6,
+  or.vacc.age.upper              = 168,
+  or.vacc.coverage               = 0,
+  or.min.interval                = 48,
+  or.start.timestep              = (2020 - year) * 24 + 1
+)
+```
+
+
+```{r sc2, cache=TRUE}
+# Scenario 2: Routine vaccination only (no SIA, no OBR)
+sc2 <- EX.Country.part2.OR(
+  uncode                         = setup$uncode,
+  generation.time                = 0.5,
+  pop.rescale                    = setup$pop.total.1950.2100[
+                                     seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                       = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                  = FALSE,
+  t.max                          = t.max,
+  rescale.WAIFW                  = FALSE,
+  yr.births.per.1000.acrossyears = setup$cbr.1950.2100[
+                                     (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                    = setup$asdr.object,
+  year                           = year,
+  EXt0                           = EXt0,
+  time.specific.MR1cov           = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov           = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.SIAcov           = rep(0, t.max),
+  time.specific.min.age.MR1      = rep(9,  t.max),
+  time.specific.max.age.MR1      = rep(24, t.max),
+  time.specific.min.age.MR2      = rep(25, t.max),
+  time.specific.max.age.MR2      = rep(36, t.max),
+  time.specific.min.age.SIA      = rep(0,  t.max),
+  time.specific.max.age.SIA      = rep(0,  t.max),
+  obj.vcdf.MR1                   = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                   = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                 = pvacsuccess(EXt0@trans@age.class,
+                                               get.boulianne.vsucc()),
+  sia.timing.in.year             = 3 / 12,
+  MR1MR2correlation              = TRUE,
+  MR1SIAcorrelation              = FALSE,
+  MR2SIAcorrelation              = FALSE,
+  intro.rate                     = 1 / 24 / 320,
+  or.confirmation.delay          = 2,
+  or.response.delay              = 2,
+  or.trigger.window              = 2,
+  or.trigger.age.lower           = 0,
+  or.trigger.age.upper           = 168,
+  or.vacc.age.lower              = 6,
+  or.vacc.age.upper              = 168,
+  or.vacc.coverage               = 0,
+  or.min.interval                = 48,
+  or.start.timestep              = (2020 - year) * 24 + 1
+)
+```
+
+```{r sc3, cache=TRUE}
+# Scenario 3: Routine + SIA (no OBR) — the main baseline for OBR comparison
+sc3 <- EX.Country.part2.OR(
+  uncode                         = setup$uncode,
+  generation.time                = 0.5,
+  pop.rescale                    = setup$pop.total.1950.2100[
+                                     seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                       = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                  = FALSE,
+  t.max                          = t.max,
+  rescale.WAIFW                  = FALSE,
+  yr.births.per.1000.acrossyears = setup$cbr.1950.2100[
+                                     (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                    = setup$asdr.object,
+  year                           = year,
+  EXt0                           = EXt0,
+  time.specific.MR1cov           = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov           = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.SIAcov           = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max]*0.3,
+  time.specific.min.age.MR1      = rep(9,  t.max),
+  time.specific.max.age.MR1      = rep(24, t.max),
+  time.specific.min.age.MR2      = rep(25, t.max),
+  time.specific.max.age.MR2      = rep(36, t.max),
+  time.specific.min.age.SIA      = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
+  time.specific.max.age.SIA      = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
+  obj.vcdf.MR1                   = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                   = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                 = pvacsuccess(EXt0@trans@age.class,
+                                               get.boulianne.vsucc()),
+  sia.timing.in.year             = 3 / 12,
+  MR1MR2correlation              = TRUE,
+  MR1SIAcorrelation              = FALSE,
+  MR2SIAcorrelation              = FALSE,
+  intro.rate                     = 1 / 24 / 320,
+  or.confirmation.delay          = 2,
+  or.response.delay              = 2,
+  or.trigger.window              = 2,
+  or.trigger.age.lower           = 0,
+  or.trigger.age.upper           = 168,
+  or.vacc.age.lower              = 6,
+  or.vacc.age.upper              = 168,
+  or.vacc.coverage               = 0,
+  or.min.interval                = 48,
+  or.start.timestep              = (2020 - year) * 24 + 1
+)
+```
+
+## 5.2b Understanding the trigger threshold
+
+The trigger fires when the metric over the surveillance window reaches `or.n.confirmations.target` (default 5). This is the same value that controls when routine testing stops per time step — operationally, the same 5-confirmed-case rule that ends the diagnostic protocol also triggers the OBR campaign.
+
+In `"I_scaled"` mode, `or.reporting.rate` must be calibrated so that scaled infections are on the same scale as confirmed cases (i.e., reaching 5 scaled infections corresponds to reaching 5 confirmed cases in the field). In `"confirmed"` mode, the metric is directly the estimated total confirmed case count from the observational model, so no additional calibration of `or.n.confirmations.target` is needed.
+
+A practical approach: run a scenario (no OBR) and plot the trigger metric over time to verify that `or.n.confirmations.target = 5` fires at plausible outbreak moments.
+
+```{r threshold-exploration}
+rc     <- sc3@result@.Data
+i.inds <- sc3@result@i.inds
+age.cl <- sc3@result@age.class
+n      <- ncol(rc)
+
+# Restrict to 0-14 years (0-168 months) — the trigger age group
+trigger.age.pos <- which(age.cl > 0 & age.cl <= 168)
+trigger.i.inds  <- i.inds[trigger.age.pos]
+
+# Sum I across the trigger age group at each time step
+I.timestep <- colSums(rc[trigger.i.inds, ])
+t.vec      <- year + (seq_len(n) - 1) * 0.5 / 12
+
+# Rolling sum over w time steps (NA for the first w-1 steps)
+rolling.sum <- function(x, w) {
+  sapply(seq_along(x), function(t) if (t < w) NA else sum(x[(t - w + 1):t]))
+}
+
+plot(t.vec, I.timestep,
+     type = "l", col = "gray70", lwd = 1,
+     xlab = "Year", ylab = "Sum of I (ages 0-14)",
+     main = "Incidence at different smoothing windows")
+lines(t.vec, rolling.sum(I.timestep, 2), col = "steelblue",   lwd = 1.5)
+lines(t.vec, rolling.sum(I.timestep, 4), col = "darkorange",  lwd = 1.5)
+lines(t.vec, rolling.sum(I.timestep, 8), col = "forestgreen", lwd = 1.5)
+legend("topright",
+       legend = c("1 step (2 wks)", "2 steps (1 mo)", "4 steps (2 mo)", "8 steps (4 mo)"),
+       col    = c("gray70", "steelblue", "darkorange", "forestgreen"),
+       lwd    = c(1, 1.5, 1.5, 1.5), bty = "n")
+```
+
+### Key learning point: model I vs. reported cases
+
+The y-axis here is the **sum of I from the model** — meaning true infectious individuals. In `"I_scaled"` mode, the trigger metric is `sum(I × reporting_rate)` — scaled infections. The reporting rate `r` (set via `or.reporting.rate`) converts true infections to roughly the scale of reported/confirmed cases, so that reaching `or.n.confirmations.target = 5` corresponds to 5 confirmed cases in the field.
+
+In practice, only a fraction φ ("phi") of true infections ever become a reported case. A child has to:
+
+1. develop symptoms severe enough to seek care
+2. be recognized as a suspected measles case by a clinician
+3. have a specimen collected and tested (if confirmation is required)
+
+Estimates of φ for measles in high-burden settings often range from 1% to 10%, meaning 90–99% of infections are never counted. The `or.reporting.rate` parameter captures this fraction — calibrating it so that `sum(I × r) >= 5` fires when the surveillance system would genuinely observe 5 confirmed cases.
+
+In `"confirmed"` mode, the observational model handles this scaling automatically via Se, Sp, and the non-measles background, so `or.reporting.rate` need only capture the pre-testing reporting fraction (care-seeking × clinical recognition).
+
+Back to the other scenarios.
+
+```{r sc4, cache=TRUE}
+# Scenario 4: Routine + SIA + OBR
+sc4 <- EX.Country.part2.OR(
+  uncode                         = setup$uncode,
+  generation.time                = 0.5,
+  pop.rescale                    = setup$pop.total.1950.2100[
+                                     seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                       = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                  = FALSE,
+  t.max                          = t.max,
+  rescale.WAIFW                  = FALSE,
+  yr.births.per.1000.acrossyears = setup$cbr.1950.2100[
+                                     (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                    = setup$asdr.object,
+  year                           = year,
+  EXt0                           = EXt0,
+  time.specific.MR1cov           = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov           = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.SIAcov           = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max]*0.3,
+  time.specific.min.age.MR1      = rep(9,  t.max),
+  time.specific.max.age.MR1      = rep(24, t.max),
+  time.specific.min.age.MR2      = rep(25, t.max),
+  time.specific.max.age.MR2      = rep(36, t.max),
+  time.specific.min.age.SIA      = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
+  time.specific.max.age.SIA      = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
+  obj.vcdf.MR1                   = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                   = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                 = pvacsuccess(EXt0@trans@age.class,
+                                               get.boulianne.vsucc()),
+  sia.timing.in.year             = 3 / 12,
+  MR1MR2correlation              = TRUE,
+  MR1SIAcorrelation              = FALSE,
+  MR2SIAcorrelation              = FALSE,
+  intro.rate                     = 1 / 24 / 320,
+  or.confirmation.delay          = 2,
+  or.monthly.reporting.rate      = c(rep(0.01, 12),
+  or.trigger.window              = 2,
+  or.trigger.age.lower           = 0,
+  or.trigger.age.upper           = 168,
+  or.response.delay              = 8,
+  or.vacc.age.lower              = 6,
+  or.vacc.age.upper              = 168,
+  or.vacc.coverage               = 0.8,
+  or.min.interval                = 48,
+  or.start.timestep              = (2005 - year) * 24 + 1
+)
+```
+
+## 5.3 Comparing results
+
+```{r compare-plot}
+get.annual.I <- function(result, year.start, t.max) {
+  rc     <- result@result@.Data
+  i.inds <- result@result@i.inds
+  n.steps.per.year <- 24
+  sapply(1:t.max, function(yr) {
+    cols <- ((yr - 1) * n.steps.per.year + 1):(yr * n.steps.per.year)
+    sum(rc[i.inds, cols])
+  })
+}
+
+years.sim <- year + 1:t.max - 0.5
+
+I.sc1 <- get.annual.I(sc1, year, t.max)
+I.sc2 <- get.annual.I(sc2, year, t.max)
+I.sc3 <- get.annual.I(sc3, year, t.max)
+I.sc4 <- get.annual.I(sc4, year, t.max)
+
+plot(years.sim, I.sc1, type = "l", lwd = 2, col = "gray50",
+     xlab = "Year", ylab = "Annual sum of I",
+     main = "Measles burden by scenario",
+     ylim = range(c(I.sc1, I.sc2, I.sc3, I.sc4)))
+lines(years.sim, I.sc2, lwd = 2, col = "steelblue")
+lines(years.sim, I.sc3, lwd = 2, col = "darkorange")
+lines(years.sim, I.sc4, lwd = 2, col = "forestgreen")
+
+# Mark OBR campaign years
+obr.steps <- which(sc4@result@or.times == 1)
+obr.yrs   <- year + (obr.steps - 1) * 0.5 / 12
+abline(v = obr.yrs, lty = 3, col = "forestgreen", lwd = 0.8)
+
+legend("topright",
+       legend = c("No vaccination", "Routine only", "Routine + SIA",
+                  "Routine + SIA + OBR", "OBR campaign"),
+       col    = c("gray50", "steelblue", "darkorange", "forestgreen", "forestgreen"),
+       lty    = c(1, 1, 1, 1, 3), lwd = 2, bty = "n")
+```
+
+### Cumulative burden table
+
+```{r burden-table}
+data.frame(
+  Scenario         = c("No vaccination", "Routine only",
+                       "Routine + SIA", "Routine + SIA + OBR"),
+  Cumulative_I     = round(c(sum(I.sc1), sum(I.sc2), sum(I.sc3), sum(I.sc4))),
+  Pct_reduction_vs_sc3 = round(100 * (1 - c(sum(I.sc1), sum(I.sc2),
+                                              sum(I.sc3), sum(I.sc4)) / sum(I.sc3)), 1)
+)
+```
+
+### When did OBR campaigns fire?
+
+```{r obr-times}
+obr.steps <- which(sc4@result@or.times == 1)
+obr.years <- year + (obr.steps - 1) * 0.5 / 12
+cat("OBR campaigns fired at calendar years:\n")
+print(round(obr.years, 2))
+cat("\nTotal OBR campaigns:", length(obr.years), "\n")
+```
+
+---
+
+# 6. How far into the future to model
+
+The right time horizon depends on your question:
+
+| Question | Suggested horizon |
+|----------|-------------------|
+| Evaluate OBR impact on a known recent outbreak | 5–10 years around the outbreak |
+| Compare OBR scenarios over a policy-relevant period | 10–20 years (e.g., 2025–2045) |
+| Evaluate long-run trajectory under different strategies | 30–50 years |
+
+**Practical considerations:**
+
+- **Burn-in**: The first ~5 years of a forward projection are heavily influenced by the starting state. If you start in 1980, the 1980–1985 period reflects transient dynamics, not steady state under the vaccination program.
+- **Coverage extrapolation**: Coverage beyond 2022 is assumed constant (held at the 2018–2022 average). Long projections become increasingly speculative.
+- **OBR availability**: Use `or.start.timestep` to prevent OBR from firing in years when the program did not exist.
+- **Population rescaling**: For runs beyond ~20 years, population rescaling (`pop.rescale`) is important to prevent drift.
+- MORE.... what do you think they are?
+
+A sensible approach for OBR analysis: start in 1980 (to properly burn in the vaccination program history), but focus comparisons on 2020 onward (when OBR is activated via `or.start.timestep`).
+
+---
+
+# 7. Deterministic vs. stochastic
+
+## 7.1 What changes with `is.stochastic = TRUE`
+
+In deterministic mode (`is.stochastic = FALSE`), transitions between compartments are exact expected values. In stochastic mode, each transition is drawn from a multinomial distribution — individuals are randomly assigned to outcomes.
+
+**Consequences:**
+
+| Property | Deterministic | Stochastic |
+|----------|--------------|------------|
+| Speed | Fast | Slower (~10× per replicate) |
+| Reproducibility | Always identical | Varies by run |
+| Extinction | Never — I can be fractional | Possible — I hits 0 |
+| Epidemic timing | Fixed | Varies across replicates |
+| Appropriate for | Scenario comparison, threshold calibration | Uncertainty quantification, extinction probability |
+
+## 7.2 When to use each
+
+Use **deterministic** when:
+- Exploring the parameter space (threshold values, coverage levels)
+- Confirming OBR campaigns fire at the right times
+- Generating a single expected trajectory
+
+Use **stochastic** when:
+- You need uncertainty intervals around projected burden
+- You want the probability that OBR prevents an outbreak entirely (via extinction)
+- Your population is small (stochastic effects matter more at low N)
+
+## 7.3 Running stochastic replicates
+
+```{r stochastic-demo, eval=FALSE}
+n.reps <- 50
+I.stoch <- matrix(NA, nrow = n.reps, ncol = t.max)
+
+for (i in 1:n.reps) {
+  res <- EX.Country.part2.OR(
+    # ... same arguments as sc4 above ...
+    is.stochastic = TRUE
+  )
+  I.stoch[i, ] <- get.annual.I(res, year, t.max)
+}
+
+# Median and 95% interval
+I.med   <- apply(I.stoch, 2, median)
+I.lo    <- apply(I.stoch, 2, quantile, 0.025)
+I.hi    <- apply(I.stoch, 2, quantile, 0.975)
+
+plot(years.sim, I.med, type = "l", lwd = 2, col = "forestgreen",
+     xlab = "Year", ylab = "Annual sum of I",
+     main = "Stochastic uncertainty — Routine + SIA + OBR",
+     ylim = range(c(I.lo, I.hi)))
+polygon(c(years.sim, rev(years.sim)), c(I.hi, rev(I.lo)),
+        col = adjustcolor("forestgreen", 0.2), border = NA)
+lines(years.sim, I.sc4, lwd = 2, lty = 2, col = "black")  # deterministic
+legend("topright",
+       legend = c("Stochastic median", "95% interval", "Deterministic"),
+       col = c("forestgreen", adjustcolor("forestgreen", 0.2), "black"),
+       lty = c(1, NA, 2), lwd = c(2, NA, 2),
+       fill = c(NA, adjustcolor("forestgreen", 0.2), NA),
+       border = c(NA, "forestgreen", NA), bty = "n")
+```
+
+---
+
+# 8. Try for yourself.
+
+1. **Threshold sensitivity**: How does changing `or.n.confirmations.target` from 5 to 10 change the number of OBR campaigns that fire and the total burden reduction?
+
+2. **Window length**: A longer `or.trigger.window` (e.g., 4 steps = 2 months, or 24 steps = 1 year) makes the trigger smoother — it responds to sustained outbreaks rather than single-step spikes. Does this help or hurt? Under what outbreak dynamics would the 1-month window over-trigger?
+
+3. **Delay**: If detection and response lag increases from 2 months (`or.total.delay = 4`) to 6 months (`or.total.delay = 12`), how much impact does OBR lose?
+
+4. **Age targeting**: Should the OBR campaign target the same age group as the surveillance trigger? What are the tradeoffs of a narrow vs. wide age target?
+
+5. **Start year**: What happens if you set `or.start.timestep = 1` (OBR available from 1980)? Is this realistic? Does it change the long-run burden substantially?
+
+
+
+Amy List:
+- update setup to include wpp2024
+- update setup to include 2024 SIA
+- update setup to include Abraham's MCV1 and MCV2 age-specific estimates
+- update boulliane to move over one age bin
+- if should rescale pop
