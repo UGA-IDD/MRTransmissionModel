@@ -639,31 +639,43 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation",
 #'
 #' @slot or.total.delay numeric. Total time steps from end of surveillance window to response.
 #' @slot or.trigger.window numeric. Number of time steps to sum I over for trigger metric.
-#' @slot or.threshold.value numeric. Threshold for trigger metric.
-#' @slot or.threshold.type character. "count" or "incidence".
 #' @slot or.trigger.age.lower numeric. Lower age bound for surveillance trigger (months); NA = all ages.
 #' @slot or.trigger.age.upper numeric. Upper age bound for surveillance trigger (months); NA = all ages.
-#' @slot or.vacc.age.lower numeric. Lower age bound for OBR vaccination campaign (months).
-#' @slot or.vacc.age.upper numeric. Upper age bound for OBR vaccination campaign (months).
+#' @slot or.vacc.age.lower numeric. Lower age bound for OBR vaccination campaign (months); default 0. CDF always counts from age 0; this is a vaccination floor only.
+#' @slot or.vacc.age.upper numeric. Upper age bound for OBR vaccination campaign (months); NA = use or.vacc.agedist.percentile.
 #' @slot or.vacc.coverage numeric. OBR campaign coverage in [0,1].
 #' @slot or.min.interval numeric. Minimum time steps between successive OBR triggers.
+#' @slot or.trigger.mode character. "I_scaled" (true infections times reporting rate) or "confirmed" (full observational model).
+#' @slot or.reporting.rate numeric. Reporting rate r in (0,1]; scalar or vector of length n.age.
+#' @slot or.non.meas.cases.by.age.month matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months. Required for "confirmed" trigger mode.
+#' @slot or.Se numeric. Diagnostic test sensitivity in [0,1]. Required for "confirmed" trigger mode.
+#' @slot or.Sp numeric. Diagnostic test specificity in [0,1]. Required for "confirmed" trigger mode.
+#' @slot or.n.confirmations.target numeric. Number of confirmed cases at which testing stops per time step (default 5).
+#' @slot or.response.delay numeric. Time steps from trigger to campaign delivery; case age distribution is accumulated over this window.
+#' @slot or.vacc.agedist.percentile numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound when or.vacc.age.upper is NA.
 #'
 #' @export
 #' @docType class
 #' @rdname experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse-class
 setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse",
          slots = list(
-           or.total.delay       = "numeric",
-           or.trigger.window    = "numeric",
-           or.threshold.value   = "numeric",
-           or.threshold.type    = "character",
-           or.trigger.age.lower = "numeric",
-           or.trigger.age.upper = "numeric",
-           or.vacc.age.lower    = "numeric",
-           or.vacc.age.upper    = "numeric",
-           or.vacc.coverage     = "numeric",
-           or.min.interval      = "numeric",
-           or.start.timestep    = "numeric"
+           or.total.delay                  = "numeric",
+           or.trigger.window               = "numeric",
+           or.trigger.age.lower            = "numeric",
+           or.trigger.age.upper            = "numeric",
+           or.vacc.age.lower               = "numeric",
+           or.vacc.age.upper               = "numeric",
+           or.vacc.coverage                = "numeric",
+           or.min.interval                 = "numeric",
+           or.start.timestep               = "numeric",
+           or.trigger.mode                 = "character",
+           or.reporting.rate               = "numeric",
+           or.non.meas.cases.by.age.month  = "matrix",
+           or.Se                           = "numeric",
+           or.Sp                           = "numeric",
+           or.n.confirmations.target       = "numeric",
+           or.response.delay               = "numeric",
+           or.vacc.agedist.percentile      = "numeric"
          ),
          contains = "experiment.updatedemog.vaccinationchange.vaccinationcorrelation")
 
@@ -791,13 +803,25 @@ setClass("sim.results.MSIRV.update.demog.vaccine.change",
 
 #' Holds the results of an outbreak response simulation
 #'
-#' @slot or.times numeric. Binary vector; 1 at each time step an OBR campaign fired.
+#' @slot or.times numeric. Vector of length numTimeSteps; 1 at each step an OBR campaign fired.
+#' @slot obs.TP matrix. Age x timestep; true measles cases tested and test-positive.
+#' @slot obs.FN_test matrix. Age x timestep; true measles cases tested and test-negative.
+#' @slot obs.FP_test matrix. Age x timestep; non-measles cases tested and test-positive.
+#' @slot obs.TN matrix. Age x timestep; non-measles cases tested and test-negative.
+#' @slot obs.TP_clinical matrix. Age x timestep; true measles cases untested, recorded as clinical/epi-linked.
+#' @slot obs.FP_clinical matrix. Age x timestep; non-measles cases untested, recorded as clinical/epi-linked.
 #'
 #' @export
 #' @docType class
 #' @rdname sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse-class
 setClass("sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
-         slots = list(or.times = "numeric"),
+         slots = list(or.times        = "numeric",
+                      obs.TP          = "matrix",
+                      obs.FN_test     = "matrix",
+                      obs.FP_test     = "matrix",
+                      obs.TN          = "matrix",
+                      obs.TP_clinical = "matrix",
+                      obs.FP_clinical = "matrix"),
          contains = "sim.results.MSIRV.update.demog.vaccine.change")
 
 

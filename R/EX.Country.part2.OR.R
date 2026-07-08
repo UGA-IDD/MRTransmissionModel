@@ -28,14 +28,24 @@
 #' @param MR1SIAcorrelation numeric in [0,1]; Pearson rho between MR1 and SIA doses
 #' @param MR2SIAcorrelation numeric in [0,1]; Pearson rho between MR2 and SIA doses
 #' @param intro.rate numeric vector; introduction rate per age class per time step
-#' @param or.total.delay numeric; total time steps from end of surveillance window to response
+#' @param or.trigger.mode character; "I_scaled" (true infections times reporting rate; default) or
+#'   "confirmed" (full observational model: tested/untested split with Se and Sp)
+#' @param or.reporting.rate numeric; reporting rate r in (0,1]; scalar or vector of length n.age.
+#'   Used in both trigger modes. Default 1 (no scaling) reproduces original raw-I behavior.
+#' @param or.non.meas.cases.by.age.month matrix; non-measles suspected cases with rows = model
+#'   age classes and columns = 12 calendar months. Required for "confirmed" trigger mode.
+#' @param or.Se numeric; diagnostic test sensitivity in [0,1]. Required for "confirmed" trigger mode.
+#' @param or.Sp numeric; diagnostic test specificity in [0,1]. Required for "confirmed" trigger mode.
+#' @param or.n.confirmations.target numeric; number of confirmed cases per time step at which
+#'   testing stops (default 5). Used in "confirmed" trigger mode.
+#' @param or.vacc.agedist.percentile numeric in (0,1]; percentile of cumulative case age CDF used as the campaign upper age bound when or.vacc.age.upper is NA. Default NA (fixed or.vacc.age.upper used).
+#' @param or.confirmation.delay numeric; time steps from end of surveillance window to case confirmation
+#' @param or.response.delay numeric; time steps from confirmation to campaign delivery
 #' @param or.trigger.window numeric; number of time steps to sum I over for trigger metric
-#' @param or.threshold.value numeric; threshold for trigger metric
-#' @param or.threshold.type character; "count" or "incidence"
 #' @param or.trigger.age.lower numeric; lower age bound for surveillance trigger (months); NA = all ages
 #' @param or.trigger.age.upper numeric; upper age bound for surveillance trigger (months); NA = all ages
-#' @param or.vacc.age.lower numeric; lower age bound for OBR vaccination campaign (months)
-#' @param or.vacc.age.upper numeric; upper age bound for OBR vaccination campaign (months)
+#' @param or.vacc.age.lower numeric; lower age bound for OBR vaccination campaign (months); default 0
+#' @param or.vacc.age.upper numeric; upper age bound for OBR vaccination campaign (months); NA = use or.vacc.agedist.percentile
 #' @param or.vacc.coverage numeric in [0,1]; OBR campaign coverage
 #' @param or.min.interval numeric; minimum time steps between successive OBR triggers
 #' @param or.start.timestep numeric; earliest time step at which OBR can trigger (1-indexed); default 1
@@ -74,14 +84,20 @@ EX.Country.part2.OR <- function(uncode,
                                 MR1SIAcorrelation        = 1,
                                 MR2SIAcorrelation        = 1,
                                 intro.rate,
-                                or.total.delay,
+                                or.trigger.mode                = "I_scaled",
+                                or.reporting.rate              = 1,
+                                or.non.meas.cases.by.age.month = matrix(NA_real_, 0, 12),
+                                or.Se                          = NA_real_,
+                                or.Sp                          = NA_real_,
+                                or.n.confirmations.target      = 5,
+                                or.vacc.agedist.percentile     = NA_real_,
+                                or.confirmation.delay,
+                                or.response.delay,
                                 or.trigger.window,
-                                or.threshold.value,
-                                or.threshold.type        = "count",
                                 or.trigger.age.lower     = NA_real_,
                                 or.trigger.age.upper     = NA_real_,
-                                or.vacc.age.lower,
-                                or.vacc.age.upper,
+                                or.vacc.age.lower        = 0,
+                                or.vacc.age.upper        = NA_real_,
                                 or.vacc.coverage,
                                 or.min.interval,
                                 or.start.timestep       = 1) {
@@ -146,10 +162,17 @@ EX.Country.part2.OR <- function(uncode,
     EX@intro.rate <- EXt0@trans@introduction.rate
   }
 
-  EX@or.total.delay       <- or.total.delay
+  or.total.delay          <- or.confirmation.delay + or.response.delay
+  EX@or.trigger.mode                <- or.trigger.mode
+  EX@or.reporting.rate              <- or.reporting.rate
+  EX@or.non.meas.cases.by.age.month <- or.non.meas.cases.by.age.month
+  EX@or.Se                          <- or.Se
+  EX@or.Sp                          <- or.Sp
+  EX@or.n.confirmations.target      <- or.n.confirmations.target
+  EX@or.vacc.agedist.percentile     <- or.vacc.agedist.percentile
+  EX@or.total.delay                 <- or.total.delay
+  EX@or.response.delay              <- or.response.delay
   EX@or.trigger.window    <- or.trigger.window
-  EX@or.threshold.value   <- or.threshold.value
-  EX@or.threshold.type    <- or.threshold.type
   EX@or.trigger.age.lower <- or.trigger.age.lower
   EX@or.trigger.age.upper <- or.trigger.age.upper
   EX@or.vacc.age.lower    <- or.vacc.age.lower
