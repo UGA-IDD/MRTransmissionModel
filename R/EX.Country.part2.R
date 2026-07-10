@@ -160,7 +160,7 @@ EX.Country.part2 <- function(uncode,
   }
 
   # Introduction rate
-  if (length(intro.rate)>1) EX@intro.rate <- intro.rate else EX@intro.rate <- EXt0@trans@introduction.rate #vector of values annual introduction rates 1980-2100
+  if (length(intro.rate)>1) EX@intro.rate <- intro.rate #vector of values annual introduction rates 1980-2100
 
   return(run(EX, rescale.WAIFW=rescale.WAIFW))
 

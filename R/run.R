@@ -98,7 +98,7 @@ setMethod("run",
               #print(t)
               #print(dim(state))
               rc [,t] <- state
-
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
             }
 
 
@@ -261,6 +261,7 @@ setMethod("run",
               #print(t)
               #print(dim(state))
               rc [,t] <- state
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
 
             }
 
@@ -410,6 +411,7 @@ setMethod("run",
               growth.rate.each.timestep[t] <- log(NT/N0)
 
               rc[,t] <- state
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
             }
 
             rc <- new("sim.results.MSIRV.update.demog.vaccine.change",
@@ -672,7 +674,7 @@ setMethod("run",
               #print(t)
               #print(dim(state))
               rc [,t] <- state
-
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
             }
 
 
@@ -888,6 +890,7 @@ setMethod("run",
               #print(t)
               #print(dim(state))
               rc [,t] <- state
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
             }
 
 
@@ -1040,6 +1043,7 @@ setMethod("run",
               #print(t)
               #print(dim(state))
               rc [,t] <- state
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
             }
 
             result <- new("sim.results.MSIRV.update.demog.space",
@@ -1304,6 +1308,7 @@ setMethod("run",
               #print(t)
               #print(dim(state))
               rc [,t] <- state
+              if(any(is.na(state))) stop(paste0("NAs at t=",t))
             }
 
 
