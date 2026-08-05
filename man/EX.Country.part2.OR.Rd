@@ -33,14 +33,20 @@ EX.Country.part2.OR(
   MR1SIAcorrelation = 1,
   MR2SIAcorrelation = 1,
   intro.rate,
-  or.total.delay,
+  or.trigger.mode = "I_scaled",
+  or.reporting.rate = 1,
+  or.non.meas.cases.by.age.month = matrix(NA_real_, 0, 12),
+  or.Se = NA_real_,
+  or.Sp = NA_real_,
+  or.n.confirmations.target = 5,
+  or.vacc.agedist.percentile = NA_real_,
+  or.confirmation.delay,
+  or.response.delay,
   or.trigger.window,
-  or.threshold.value,
-  or.threshold.type = "count",
   or.trigger.age.lower = NA_real_,
   or.trigger.age.upper = NA_real_,
-  or.vacc.age.lower,
-  or.vacc.age.upper,
+  or.vacc.age.lower = 0,
+  or.vacc.age.upper = NA_real_,
   or.vacc.coverage,
   or.min.interval,
   or.start.timestep = 1
@@ -103,21 +109,37 @@ EX.Country.part2.OR(
 
 \item{intro.rate}{numeric vector; introduction rate per age class per time step}
 
-\item{or.total.delay}{numeric; total time steps from end of surveillance window to response}
+\item{or.trigger.mode}{character; "I_scaled" (true infections times reporting rate; default) or
+"confirmed" (full observational model: tested/untested split with Se and Sp)}
+
+\item{or.reporting.rate}{numeric; reporting rate r in (0,1]; scalar or vector of length n.age.
+Used in both trigger modes. Default 1 (no scaling) reproduces original raw-I behavior.}
+
+\item{or.non.meas.cases.by.age.month}{matrix; non-measles suspected cases with rows = model
+age classes and columns = 12 calendar months. Required for "confirmed" trigger mode.}
+
+\item{or.Se}{numeric; diagnostic test sensitivity in [0,1]. Required for "confirmed" trigger mode.}
+
+\item{or.Sp}{numeric; diagnostic test specificity in [0,1]. Required for "confirmed" trigger mode.}
+
+\item{or.n.confirmations.target}{numeric; number of confirmed cases per time step at which
+testing stops (default 5). Used in "confirmed" trigger mode.}
+
+\item{or.vacc.agedist.percentile}{numeric in (0,1]; percentile of cumulative case age CDF used as the campaign upper age bound when or.vacc.age.upper is NA. Default NA (fixed or.vacc.age.upper used).}
+
+\item{or.confirmation.delay}{numeric; time steps from end of surveillance window to case confirmation}
+
+\item{or.response.delay}{numeric; time steps from confirmation to campaign delivery}
 
 \item{or.trigger.window}{numeric; number of time steps to sum I over for trigger metric}
-
-\item{or.threshold.value}{numeric; threshold for trigger metric}
-
-\item{or.threshold.type}{character; "count" or "incidence"}
 
 \item{or.trigger.age.lower}{numeric; lower age bound for surveillance trigger (months); NA = all ages}
 
 \item{or.trigger.age.upper}{numeric; upper age bound for surveillance trigger (months); NA = all ages}
 
-\item{or.vacc.age.lower}{numeric; lower age bound for OBR vaccination campaign (months)}
+\item{or.vacc.age.lower}{numeric; lower age bound for OBR vaccination campaign (months); default 0}
 
-\item{or.vacc.age.upper}{numeric; upper age bound for OBR vaccination campaign (months)}
+\item{or.vacc.age.upper}{numeric; upper age bound for OBR vaccination campaign (months); NA = use or.vacc.agedist.percentile}
 
 \item{or.vacc.coverage}{numeric in [0,1]; OBR campaign coverage}
 

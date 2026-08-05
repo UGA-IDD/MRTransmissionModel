@@ -10,6 +10,18 @@ Holds the results of an outbreak response simulation
 \section{Slots}{
 
 \describe{
-\item{\code{or.times}}{numeric. Binary vector; 1 at each time step an OBR campaign fired.}
+\item{\code{or.times}}{numeric. Vector of length numTimeSteps; 1 at each step an OBR campaign fired.}
+
+\item{\code{obs.TP}}{matrix. Age x timestep; true measles cases tested and test-positive.}
+
+\item{\code{obs.FN_test}}{matrix. Age x timestep; true measles cases tested and test-negative.}
+
+\item{\code{obs.FP_test}}{matrix. Age x timestep; non-measles cases tested and test-positive.}
+
+\item{\code{obs.TN}}{matrix. Age x timestep; non-measles cases tested and test-negative.}
+
+\item{\code{obs.TP_clinical}}{matrix. Age x timestep; true measles cases untested, recorded as clinical/epi-linked.}
+
+\item{\code{obs.FP_clinical}}{matrix. Age x timestep; non-measles cases untested, recorded as clinical/epi-linked.}
 }}
 

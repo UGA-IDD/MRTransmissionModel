@@ -49,26 +49,46 @@ What I am still thinking over is a scenario dimension on proportion of suspected
 
 ## S4 Class Design: experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse
 
-The OBR experiment class extends `experiment.updatedemog.vaccinationchange.vaccinationcorrelation` with two groups of new slots.
+The OBR experiment class extends `experiment.updatedemog.vaccinationchange.vaccinationcorrelation` with the following slots. **Note:** `or.total.delay` is not supplied directly by the user — it is computed inside `EX.Country.part2.OR()` as `or.confirmation.delay + or.response.delay` and then stored in this slot.
 
 ### Trigger slots
 | Slot | Type | Description |
 |------|------|-------------|
-| `or.total.delay` | numeric | Total delay in time steps (detection + response lag) |
-| `or.trigger.window` | numeric | Number of steps over which cumulative I is summed |
-| `or.threshold.value` | numeric | Threshold value (count or rate) |
-| `or.threshold.type` | character | `"count"` or `"incidence"` |
+| `or.trigger.mode` | character | `"I_scaled"` (true infections × reporting rate) or `"confirmed"` (full observational model) |
+| `or.reporting.rate` | numeric | Reporting rate r ∈ (0,1]; scalar or vector of length n.age. Used in both modes. Default 1 (no scaling). |
+| `or.total.delay` | numeric | Total delay in time steps; set to `or.confirmation.delay + or.response.delay` by helper |
+| `or.trigger.window` | numeric | Number of steps over which cumulative metric is summed |
+| `or.n.confirmations.target` | numeric | Number of (confirmed) cases at which the trigger fires; default 5 |
 | `or.trigger.age.lower` | numeric | Lower age bound (months) for trigger surveillance; `NA` = all ages |
 | `or.trigger.age.upper` | numeric | Upper age bound (months) for trigger surveillance; `NA` = all ages |
+| `or.start.timestep` | numeric | Earliest time step at which OBR can trigger (1-indexed); default 1 |
+
+### Observational model slots (required for `or.trigger.mode = "confirmed"`)
+| Slot | Type | Description |
+|------|------|-------------|
+| `or.non.meas.cases.by.age.month` | matrix | Non-measles suspected cases; rows = model age classes, columns = 12 calendar months |
+| `or.Se` | numeric | Diagnostic test sensitivity ∈ [0,1] |
+| `or.Sp` | numeric | Diagnostic test specificity ∈ [0,1] |
 
 ### Response slots
 | Slot | Type | Description |
 |------|------|-------------|
-| `or.vacc.age.lower` | numeric | Lower age bound (months) for response campaign |
-| `or.vacc.age.upper` | numeric | Upper age bound (months) for response campaign |
+| `or.response.delay` | numeric | Time steps from trigger to campaign delivery; case age distribution is accumulated over this window |
+| `or.vacc.age.lower` | numeric | Lower age bound (months) for response campaign; default 0 |
+| `or.vacc.age.upper` | numeric | Upper age bound (months) for response campaign; `NA` = use `or.vacc.agedist.percentile` |
+| `or.vacc.agedist.percentile` | numeric | Percentile (0–1) of cumulative case age CDF used as campaign upper age bound when `or.vacc.age.upper` is `NA` |
 | `or.vacc.coverage` | numeric | Coverage of response campaign (0–1); set to 0 to disable OBR |
 | `or.min.interval` | numeric | Minimum steps between successive OBR triggers |
-| `or.start.timestep` | numeric | Earliest time step at which OBR can trigger (1-indexed); default 1 |
+
+### `EX.Country.part2.OR()` helper — user-facing delay arguments
+
+The helper accepts `or.confirmation.delay` and `or.response.delay` separately (both required, no defaults):
+
+```r
+or.total.delay <- or.confirmation.delay + or.response.delay
+```
+
+`or.total.delay` is then stored in the experiment object. `or.confirmation.delay` is not stored as a slot — only the computed total and `or.response.delay` are kept.
 
 ### Result class
 
@@ -76,52 +96,65 @@ The OBR experiment class extends `experiment.updatedemog.vaccinationchange.vacci
 setClass(
   "sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
   contains = "sim.results.MSIRV.update.demog.vaccine.change",
-  slots = list(or.times = "numeric")
+  slots = list(
+    or.times        = "numeric",  # length numTimeSteps; 1 when OBR campaign fired
+    obs.TP          = "matrix",   # age x timestep; true measles cases tested & test-positive
+    obs.FN_test     = "matrix",   # age x timestep; true measles cases tested & test-negative
+    obs.FP_test     = "matrix",   # age x timestep; non-measles cases tested & test-positive
+    obs.TN          = "matrix",   # age x timestep; non-measles cases tested & test-negative
+    obs.TP_clinical = "matrix",   # age x timestep; true measles cases untested, clinical/epi-linked
+    obs.FP_clinical = "matrix"    # age x timestep; non-measles cases untested, clinical/epi-linked
+  )
 )
 ```
-`or.times` is a vector of length `t.max` with 1 at each step an OBR was triggered, 0 otherwise.
 
-### Trigger metric: cumulative I (not ΔR)
+The obs matrices are always allocated (even when no observational model is used); they contain zeros when `or.trigger.mode = "I_scaled"` and `or.non.meas.cases.by.age.month` is not supplied.
 
-The trigger looks backward in the simulation record `rc`:
+### Trigger logic
 
+Two trigger modes:
+
+**`"I_scaled"` (default):** metric = sum of `I * or.reporting.rate` over the surveillance window:
 ```r
 t.end   <- t - exper@or.total.delay
 t.start <- t.end - exper@or.trigger.window + 1
-cum.I   <- sum(rc[trigger.i.inds, t.start:t.end])
+metric  <- sum(rc[trigger.i.inds, t.start:t.end] * or.rep.rate)
 ```
+Trigger fires when `metric >= or.n.confirmations.target`.
 
-We use the sum of I compartments (not change in R) because the I→R transition takes one full time step, which would add an additional implicit delay if ΔR were used as the metric.
+**`"confirmed"`:** uses the full observational model (Se/Sp/non-measles background) to compute `confirmed.trigger[t]` each step. The same lookback window is then summed over `confirmed.trigger` rather than raw I.
 
-The earliest time step at which OBR can trigger is:
+The earliest time step at which OBR can trigger:
 ```r
-or.min.t <- max(or.total.delay + or.trigger.window, or.start.timestep)
+or.min.t <- max(exper@or.total.delay + exper@or.trigger.window, exper@or.start.timestep)
 ```
-This ensures there is always enough history to look back without indexing out of bounds, and additionally respects the user-specified start point (e.g. `or.start.timestep = (2020 - year) * 24 + 1` to prevent OBR before 2020).
+
+### Dynamic campaign age targeting
+
+When `or.vacc.age.upper` is `NA`, the campaign upper age is derived from the case age distribution accumulated during the `or.response.delay` window:
+```r
+cdf       <- cumsum(pending.case.by.age) / sum(pending.case.by.age)
+pct.idx   <- which(cdf >= exper@or.vacc.agedist.percentile)[1]
+vacc.upper <- age.classes[pct.idx]
+```
+In `"I_scaled"` mode the accumulation uses `I * r + non-measles background`; in `"confirmed"` mode it uses the confirmed case counts from the obs matrices.
 
 ### Integration into package ✅ COMPLETE
-
-All pieces extracted from `branch_building/OutbreakResponse.R` and moved into the package:
 
 | File | Change |
 |------|--------|
 | `R/setClasses.R` | Added `experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse` and `sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse` class definitions |
 | `R/run.R` | Added `setMethod("run", "experiment...outbreakresponse", ...)` after the `vaccinationcorrelation` run method |
-| `R/EX.Country.part2.OR.R` | New file — `EX.Country.part2.OR()` helper function (mirrors `EX.Country.part2()`, always creates an OBR experiment object) |
-| `NAMESPACE` | Added `export(EX.Country.part2.OR)`, `exportClasses(experiment...outbreakresponse)`, `exportClasses(sim.results...outbreakresponse)` |
-| `DESCRIPTION` | Added `'EX.Country.part2.OR.R'` to Collate after `'EX.Country.part2.R'` |
-| `branch_building/OutbreakResponse.R` | Stripped to scenario construction example only (all other code now in package) |
-
-Post-integration additions:
-- Added `or.start.timestep` slot (class, run method, helper function) — lets user prevent OBR from triggering before a given time step
-- `or.min.t` in run method is now `max(or.total.delay + or.trigger.window, or.start.timestep)`
-- `or.vacc.coverage = 0` pattern established for "no OBR" baseline — both scenarios use `EX.Country.part2.OR()` for consistency
-- Working Zambia example in `branch_building/OutbreakResponse.R` with two scenarios (A: `or.vacc.coverage = 0`, B: `or.vacc.coverage = 0.85`)
+| `R/EX.Country.part2.OR.R` | `EX.Country.part2.OR()` helper function |
+| `NAMESPACE` | Exports for class and helper |
+| `DESCRIPTION` | Collate entry for `EX.Country.part2.OR.R` |
+| `branch_building/OutbreakResponse.R` | Scenario construction example only |
 
 Notes on `EX.Country.part2.OR()`:
 - `SIAinacc`, `SIAinefficient`, and `prop.inacc` are excluded — incompatible with the `vaccinationcorrelation` parent class
-- `MR1MR2correlation`, `MR1SIAcorrelation`, `MR2SIAcorrelation` default to full correlation (`TRUE`, `1`, `1`) — appropriate for OBR scenarios where all campaigns are correlated
-- `MR1SIAcorrelation` and `MR2SIAcorrelation` are wrapped in `as.numeric()` for backward compatibility with boolean input
+- `MR1MR2correlation`, `MR1SIAcorrelation`, `MR2SIAcorrelation` default to full correlation (`TRUE`, `1`, `1`)
+- `MR1SIAcorrelation` and `MR2SIAcorrelation` are wrapped in `as.numeric()` for backward compatibility
+- `or.vacc.coverage = 0` pattern for "no OBR" baseline — both scenarios use `EX.Country.part2.OR()` for consistency
 
 ---
 
@@ -159,13 +192,20 @@ A beta-binomial likelihood absorbs over-dispersion from months with <5 tests wit
 
 `φ` becomes a two-level step function: `φ_low` at baseline (routine surveillance), `φ_high` during an active OBR investigation. The switch timing is a scenario parameter tied to the OBR trigger. This is tractable without a full observation model — parameterize as `(φ_baseline, φ_investigation)` and add the switch as a scenario dimension.
 
-### Current status and recommendation
+### Current status
 
-No code has been written for the observational model. The discussion is design-level only.
+**The observational model (Option 2 / Option 3 hybrid) is implemented** as part of the `"confirmed"` trigger mode in `R/run.R`. At each time step it:
 
-**Recommended starting point**: Option 1. Use IgM-confirmed counts (suspected × proportion IgM+, aggregated annually) as the calibration target, and let `φ` absorb all sources of under-detection. Background rash as a nuisance parameter (Option 2) is the right longer-term framing, but Option 1 is simpler and avoids the need to estimate `B`.
+1. Computes total suspected cases = true reported measles (`I * r`) + non-measles background (from `or.non.meas.cases.by.age.month`)
+2. Derives an expected IgM positivity rate using Se and Sp
+3. Allocates tests proportionally across age classes up to `or.n.confirmations.target / pos.rate` tests
+4. Fills `obs.TP`, `obs.FN_test`, `obs.FP_test`, `obs.TN`, `obs.TP_clinical`, `obs.FP_clinical` matrices
 
-The biggest contributors to background rash in Zambia are likely enteroviruses and parvovirus B19 (no vaccine, no model). Rubella noise is probably small given Zambia's vaccine introduction, and the Zambia-specific Chikungunya/dengue/Zika burden is low. **Background rash as a constant nuisance `B` is probably the right framing** rather than trying to model each pathogen separately.
+The `"I_scaled"` mode (default) skips the full obs model and simply scales true infections by `or.reporting.rate` — this is equivalent to Option 1.
+
+**For calibration**: using IgM-confirmed counts (suspected × proportion IgM+, aggregated annually) as a calibration target and letting `φ` absorb under-detection remains the recommended starting point (Option 1 / `"I_scaled"` mode). The `"confirmed"` mode is available for scenarios that explicitly model the surveillance/testing process as a trigger mechanism.
+
+The biggest contributors to background rash in Zambia are likely enteroviruses and parvovirus B19. Rubella noise is probably small given Zambia's vaccine introduction. **Background rash as a constant nuisance `B` is probably the right framing** for `or.non.meas.cases.by.age.month` rather than trying to model each pathogen separately.
 
 ---
 

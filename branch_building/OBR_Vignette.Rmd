@@ -1,5 +1,5 @@
 ---
-title: "Outbreak Response Scenario Modeling — Bootcamp"
+title: "Outbreak Response Scenario Modeling"
 output: html_document
 ---
 
@@ -634,14 +634,17 @@ sc4 <- EX.Country.part2.OR(
   MR1SIAcorrelation              = FALSE,
   MR2SIAcorrelation              = FALSE,
   intro.rate                     = 1 / 24 / 320,
+  or.trigger.mode                = "I_scaled",
+  or.reporting.rate              = 0.01,
+  or.n.confirmations.target      = 5,
   or.confirmation.delay          = 2,
-  or.monthly.reporting.rate      = c(rep(0.01, 12),
+  or.response.delay              = 8,
   or.trigger.window              = 2,
   or.trigger.age.lower           = 0,
   or.trigger.age.upper           = 168,
-  or.response.delay              = 8,
   or.vacc.age.lower              = 6,
   or.vacc.age.upper              = 168,
+  or.vacc.agedist.percentile     = NA_real_,
   or.vacc.coverage               = 0.8,
   or.min.interval                = 48,
   or.start.timestep              = (2005 - year) * 24 + 1

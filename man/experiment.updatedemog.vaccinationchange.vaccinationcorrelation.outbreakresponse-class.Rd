@@ -14,20 +14,32 @@ Class for an outbreak response experiment
 
 \item{\code{or.trigger.window}}{numeric. Number of time steps to sum I over for trigger metric.}
 
-\item{\code{or.threshold.value}}{numeric. Threshold for trigger metric.}
-
-\item{\code{or.threshold.type}}{character. "count" or "incidence".}
-
 \item{\code{or.trigger.age.lower}}{numeric. Lower age bound for surveillance trigger (months); NA = all ages.}
 
 \item{\code{or.trigger.age.upper}}{numeric. Upper age bound for surveillance trigger (months); NA = all ages.}
 
-\item{\code{or.vacc.age.lower}}{numeric. Lower age bound for OBR vaccination campaign (months).}
+\item{\code{or.vacc.age.lower}}{numeric. Lower age bound for OBR vaccination campaign (months); default 0. CDF always counts from age 0; this is a vaccination floor only.}
 
-\item{\code{or.vacc.age.upper}}{numeric. Upper age bound for OBR vaccination campaign (months).}
+\item{\code{or.vacc.age.upper}}{numeric. Upper age bound for OBR vaccination campaign (months); NA = use or.vacc.agedist.percentile.}
 
 \item{\code{or.vacc.coverage}}{numeric. OBR campaign coverage in [0,1].}
 
 \item{\code{or.min.interval}}{numeric. Minimum time steps between successive OBR triggers.}
+
+\item{\code{or.trigger.mode}}{character. "I_scaled" (true infections times reporting rate) or "confirmed" (full observational model).}
+
+\item{\code{or.reporting.rate}}{numeric. Reporting rate r in (0,1]; scalar or vector of length n.age.}
+
+\item{\code{or.non.meas.cases.by.age.month}}{matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months. Required for "confirmed" trigger mode.}
+
+\item{\code{or.Se}}{numeric. Diagnostic test sensitivity in [0,1]. Required for "confirmed" trigger mode.}
+
+\item{\code{or.Sp}}{numeric. Diagnostic test specificity in [0,1]. Required for "confirmed" trigger mode.}
+
+\item{\code{or.n.confirmations.target}}{numeric. Number of confirmed cases at which testing stops per time step (default 5).}
+
+\item{\code{or.response.delay}}{numeric. Time steps from trigger to campaign delivery; case age distribution is accumulated over this window.}
+
+\item{\code{or.vacc.agedist.percentile}}{numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound when or.vacc.age.upper is NA.}
 }}
 
