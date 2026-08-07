@@ -527,43 +527,29 @@ setMethod(
     pending.case.by.age <- numeric(length(exper@trans@age.class))
     age.classes         <- exper@trans@age.class
 
-    # Row indices of I compartment for the trigger age group
-    if (is.na(exper@or.trigger.age.lower) || is.na(exper@or.trigger.age.upper)) {
+    # Age indices for the trigger surveillance window
+    if (is.na(exper@or.trigger.window.age.lower) || is.na(exper@or.trigger.window.age.upper)) {
       trigger.age.pos <- seq_along(age.classes)
     } else {
-      trigger.age.pos <- which(age.classes > exper@or.trigger.age.lower &
-                               age.classes <= exper@or.trigger.age.upper)
+      trigger.age.pos <- which(age.classes > exper@or.trigger.window.age.lower &
+                               age.classes <= exper@or.trigger.window.age.upper)
     }
-    trigger.i.inds <- exper@trans@i.inds[trigger.age.pos]
 
-    # Reporting rate: trigger age group (for metric) and all ages (for response accumulation)
-    or.rep.rate <- if (length(exper@or.reporting.rate) == 1) {
-      rep(exper@or.reporting.rate, length(trigger.age.pos))
-    } else {
-      exper@or.reporting.rate[trigger.age.pos]
-    }
+    # Reporting rate for all ages (pre-testing fraction: care-seeking x clinical recognition)
     or.rep.rate.all <- if (length(exper@or.reporting.rate) == 1) {
       rep(exper@or.reporting.rate, length(age.classes))
     } else {
       exper@or.reporting.rate
     }
 
-    # Steps per year (for calendar month mapping in observational model and accumulation)
+    # Steps per year (for calendar month mapping)
     steps.per.year.or <- round(1 / exper@step.size)
 
     # Earliest time step at which OBR trigger can be evaluated
     or.min.t <- max(exper@or.total.delay + exper@or.trigger.window,
                     exper@or.start.timestep)
 
-    # "confirmed" trigger mode: pre-allocate per-timestep confirmed case vector
-    if (exper@or.trigger.mode == "confirmed") {
-      confirmed.trigger <- numeric(numTimeSteps)
-    }
-
-    # Observational model: pre-allocate 6 age x timestep output matrices.
-    # Computed every step when Se, Sp, and non_meas are available.
-    has.obs.model <- nrow(exper@or.non.meas.cases.by.age.month) > 0 &&
-                     !is.na(exper@or.Se) && !is.na(exper@or.Sp)
+    # Observational model output matrices (age x timestep); always allocated
     n.age.all     <- length(age.classes)
     obs.TP          <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
     obs.FN_test     <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
@@ -625,21 +611,21 @@ setMethod(
         MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[index.routine.vacc[t]]
       }
 
-      # --- OBR: trigger check, response accumulation, and campaign delivery ---
+      # --- OBR: trigger check, campaign delivery, observational model, and accumulation ---
       #
       # Step 1 (pre-state-update): check for new trigger; fire campaign if response delay elapsed.
-      # Step 2 (post-state-update): accumulate case age distribution for pending response window.
+      # Step 2 (post-state-update): run observational model; accumulate case age distribution.
       #
-      # Trigger modes (or.trigger.mode):
-      #   "I_scaled"  : metric = sum(I * reporting.rate) over surveillance window
-      #   "confirmed" : metric = sum(confirmed.trigger[]) over surveillance window;
-      #                 confirmed.trigger[] filled post-update (see below)
+      # Trigger: sum obs.TP (IgM-confirmed measles) over trigger age group and window.
+      #   Fires when sum >= or.n.confirmations.target.
       #
-      # Campaign age targeting:
-      #   or.vacc.age.upper not NA -> use it directly
-      #   or.vacc.age.upper NA     -> use CDF of pending.case.by.age at or.vacc.agedist.percentile
-      #   or.response.case.type "suspected": CDF from I*r + non-measles background
-      #   or.response.case.type "confirmed": CDF from estimated confirmed cases
+      # Campaign age targeting (always CDF-based):
+      #   Upper age bound = age class at or.vacc.agedist.percentile of pending.case.by.age CDF.
+      #   Vaccination covers all ages from minimum up to that bound.
+      #
+      # stop_testing_at_trigger controls what accumulates in pending.case.by.age:
+      #   TRUE  -> suspected cases (true.reported.all + non-measles background)
+      #   FALSE -> obs.TP only (diagnostic confirmation continues through response window)
 
       # 1a. Check for new trigger (only when no campaign is already pending)
       if (is.na(pending.trigger.t) &&
@@ -648,12 +634,7 @@ setMethod(
 
         t.end   <- t - exper@or.total.delay
         t.start <- t.end - exper@or.trigger.window + 1
-
-        if (exper@or.trigger.mode == "confirmed") {
-          metric <- sum(confirmed.trigger[t.start:t.end])
-        } else {  # "I_scaled"
-          metric <- sum(rc[trigger.i.inds, t.start:t.end] * or.rep.rate)
-        }
+        metric  <- sum(obs.TP[trigger.age.pos, t.start:t.end])
 
         if (metric >= exper@or.n.confirmations.target) {
           pending.trigger.t <- t
@@ -664,11 +645,8 @@ setMethod(
       if (!is.na(pending.trigger.t) &&
           t == pending.trigger.t + exper@or.response.delay) {
 
-        # Determine upper vaccination age bound
-        if (!is.na(exper@or.vacc.age.upper)) {
-          vacc.upper <- exper@or.vacc.age.upper
-        } else if (sum(pending.case.by.age) > 0 &&
-                   !is.na(exper@or.vacc.agedist.percentile)) {
+        # Upper vaccination age bound from case age CDF
+        if (sum(pending.case.by.age) > 0) {
           cdf        <- cumsum(pending.case.by.age) / sum(pending.case.by.age)
           pct.idx    <- which(cdf >= exper@or.vacc.agedist.percentile)[1]
           vacc.upper <- age.classes[pct.idx]
@@ -676,9 +654,7 @@ setMethod(
           vacc.upper <- max(age.classes)
         }
 
-        vacc.lower          <- exper@or.vacc.age.lower
-        or.vacc.age.pos.dyn <- which(age.classes > vacc.lower &
-                                     age.classes <= vacc.upper)
+        or.vacc.age.pos.dyn <- which(age.classes <= vacc.upper)
         or.vacc.prob.dyn    <- rep(0, exper@trans@n.age.class)
         or.vacc.prob.dyn[or.vacc.age.pos.dyn] <-
           exper@or.vacc.coverage *
@@ -702,67 +678,45 @@ setMethod(
       # Calendar month for this timestep
       month.t <- floor(((t - 1) %% steps.per.year.or) / steps.per.year.or * 12) + 1
 
-      # Always compute true.reported.all (used by obs model and "suspected" accumulation)
+      # Suspected cases entering surveillance (reporting process, pre-testing)
       true.reported.all <- rc[exper@trans@i.inds, t] * or.rep.rate.all
 
-      # Full observational model: 6-category age x timestep breakdown.
-      # Runs every step when Se, Sp, and non_meas are provided.
-      if (has.obs.model) {
+      # Observational model: 6-category age x timestep breakdown
+      m.all          <- exper@or.non.meas.cases.by.age.month[, month.t]
+      total.susp.all <- true.reported.all + m.all
+      total.susp.sum <- sum(total.susp.all)
 
-        m.all          <- exper@or.non.meas.cases.by.age.month[, month.t]
-        total.susp.all <- true.reported.all + m.all
-        total.susp.sum <- sum(total.susp.all)
+      if (total.susp.sum > 0) {
+        pos.rate <- (sum(true.reported.all) / total.susp.sum) * exper@or.Se +
+                    (sum(m.all)             / total.susp.sum) * (1 - exper@or.Sp)
+        n.tests  <- if (pos.rate > 0)
+          min(exper@or.n.confirmations.target / pos.rate, total.susp.sum)
+        else 0
 
-        if (total.susp.sum > 0) {
-          pos.rate <- (sum(true.reported.all) / total.susp.sum) * exper@or.Se +
-                      (sum(m.all)             / total.susp.sum) * (1 - exper@or.Sp)
-          n.tests  <- if (pos.rate > 0)
-            min(exper@or.n.confirmations.target / pos.rate, total.susp.sum)
-          else 0
+        prop.age         <- total.susp.all / total.susp.sum
+        n.tested         <- n.tests * prop.age
+        prop.true        <- ifelse(total.susp.all > 0,
+                                   true.reported.all / total.susp.all, 0)
+        n.true.tested    <- n.tested * prop.true
+        n.nonmeas.tested <- n.tested * (1 - prop.true)
 
-          prop.age         <- total.susp.all / total.susp.sum
-          n.tested         <- n.tests * prop.age
-          prop.true        <- ifelse(total.susp.all > 0,
-                                     true.reported.all / total.susp.all, 0)
-          n.true.tested    <- n.tested * prop.true
-          n.nonmeas.tested <- n.tested * (1 - prop.true)
-
-          obs.TP[, t]          <- n.true.tested    * exper@or.Se
-          obs.FN_test[, t]     <- n.true.tested    * (1 - exper@or.Se)
-          obs.FP_test[, t]     <- n.nonmeas.tested * (1 - exper@or.Sp)
-          obs.TN[, t]          <- n.nonmeas.tested * exper@or.Sp
-          obs.TP_clinical[, t] <- true.reported.all - n.true.tested
-          obs.FP_clinical[, t] <- m.all             - n.nonmeas.tested
-        }
-
-      } else {
-        m.all <- numeric(n.age.all)
+        obs.TP[, t]          <- n.true.tested    * exper@or.Se
+        obs.FN_test[, t]     <- n.true.tested    * (1 - exper@or.Se)
+        obs.FP_test[, t]     <- n.nonmeas.tested * (1 - exper@or.Sp)
+        obs.TN[, t]          <- n.nonmeas.tested * exper@or.Sp
+        obs.TP_clinical[, t] <- true.reported.all - n.true.tested
+        obs.FP_clinical[, t] <- m.all             - n.nonmeas.tested
       }
 
-      # "confirmed" trigger mode: derive scalar from obs model (trigger age group only)
-      if (exper@or.trigger.mode == "confirmed") {
-        confirmed.trigger[t] <- sum(
-          obs.TP[trigger.age.pos, t]          +
-          obs.FP_test[trigger.age.pos, t]     +
-          obs.TP_clinical[trigger.age.pos, t] +
-          obs.FP_clinical[trigger.age.pos, t]
-        )
-      }
-
-      # Accumulate case age distribution for the pending response window.
-      # Uses already-computed obs model matrices — no duplicate calculation.
+      # Accumulate case age distribution during the response window
       if (!is.na(pending.trigger.t) &&
           t >= pending.trigger.t &&
           t < pending.trigger.t + exper@or.response.delay) {
 
-        if (exper@or.trigger.mode == "I_scaled") {
+        if (exper@stop_testing_at_trigger) {
           pending.case.by.age <- pending.case.by.age + true.reported.all + m.all
-        } else {  # "confirmed"
-          pending.case.by.age <- pending.case.by.age +
-            obs.TP[, t]          +
-            obs.FP_test[, t]     +
-            obs.TP_clinical[, t] +
-            obs.FP_clinical[, t]
+        } else {
+          pending.case.by.age <- pending.case.by.age + obs.TP[, t]
         }
       }
     }

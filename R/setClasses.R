@@ -638,21 +638,19 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation",
 #' Class for an outbreak response experiment
 #'
 #' @slot or.total.delay numeric. Total time steps from end of surveillance window to response.
-#' @slot or.trigger.window numeric. Number of time steps to sum I over for trigger metric.
-#' @slot or.trigger.age.lower numeric. Lower age bound for surveillance trigger (months); NA = all ages.
-#' @slot or.trigger.age.upper numeric. Upper age bound for surveillance trigger (months); NA = all ages.
-#' @slot or.vacc.age.lower numeric. Lower age bound for OBR vaccination campaign (months); default 0. CDF always counts from age 0; this is a vaccination floor only.
-#' @slot or.vacc.age.upper numeric. Upper age bound for OBR vaccination campaign (months); NA = use or.vacc.agedist.percentile.
+#' @slot or.trigger.window numeric. Number of time steps to sum obs.TP over for trigger metric.
+#' @slot or.trigger.window.age.lower numeric. Lower age bound for surveillance trigger (months); NA = all ages.
+#' @slot or.trigger.window.age.upper numeric. Upper age bound for surveillance trigger (months); NA = all ages.
 #' @slot or.vacc.coverage numeric. OBR campaign coverage in [0,1].
 #' @slot or.min.interval numeric. Minimum time steps between successive OBR triggers.
-#' @slot or.trigger.mode character. "I_scaled" (true infections times reporting rate) or "confirmed" (full observational model).
-#' @slot or.reporting.rate numeric. Reporting rate r in (0,1]; scalar or vector of length n.age.
-#' @slot or.non.meas.cases.by.age.month matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months. Required for "confirmed" trigger mode.
-#' @slot or.Se numeric. Diagnostic test sensitivity in [0,1]. Required for "confirmed" trigger mode.
-#' @slot or.Sp numeric. Diagnostic test specificity in [0,1]. Required for "confirmed" trigger mode.
-#' @slot or.n.confirmations.target numeric. Number of confirmed cases at which testing stops per time step (default 5).
-#' @slot or.response.delay numeric. Time steps from trigger to campaign delivery; case age distribution is accumulated over this window.
-#' @slot or.vacc.agedist.percentile numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound when or.vacc.age.upper is NA.
+#' @slot or.reporting.rate numeric. Reporting rate (care-seeking x clinical recognition, pre-testing) in (0,1]; scalar or vector of length n.age.
+#' @slot or.non.meas.cases.by.age.month matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months.
+#' @slot or.Se numeric. Diagnostic test sensitivity in [0,1].
+#' @slot or.Sp numeric. Diagnostic test specificity in [0,1].
+#' @slot or.n.confirmations.target numeric. Trigger threshold (sum of obs.TP over window must reach this) and per-step testing stop rule.
+#' @slot or.response.delay numeric. Time steps from trigger to campaign delivery; case age distribution accumulates over this window.
+#' @slot or.vacc.agedist.percentile numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound.
+#' @slot stop_testing_at_trigger logical. If TRUE, campaign age targeting uses suspected cases (reporting process only); if FALSE, uses obs.TP accumulated through the response window.
 #'
 #' @export
 #' @docType class
@@ -661,21 +659,19 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbre
          slots = list(
            or.total.delay                  = "numeric",
            or.trigger.window               = "numeric",
-           or.trigger.age.lower            = "numeric",
-           or.trigger.age.upper            = "numeric",
-           or.vacc.age.lower               = "numeric",
-           or.vacc.age.upper               = "numeric",
+           or.trigger.window.age.lower     = "numeric",
+           or.trigger.window.age.upper     = "numeric",
            or.vacc.coverage                = "numeric",
            or.min.interval                 = "numeric",
            or.start.timestep               = "numeric",
-           or.trigger.mode                 = "character",
            or.reporting.rate               = "numeric",
            or.non.meas.cases.by.age.month  = "matrix",
            or.Se                           = "numeric",
            or.Sp                           = "numeric",
            or.n.confirmations.target       = "numeric",
            or.response.delay               = "numeric",
-           or.vacc.agedist.percentile      = "numeric"
+           or.vacc.agedist.percentile      = "numeric",
+           stop_testing_at_trigger         = "logical"
          ),
          contains = "experiment.updatedemog.vaccinationchange.vaccinationcorrelation")
 

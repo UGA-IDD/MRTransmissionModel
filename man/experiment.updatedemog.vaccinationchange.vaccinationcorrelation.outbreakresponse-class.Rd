@@ -12,34 +12,30 @@ Class for an outbreak response experiment
 \describe{
 \item{\code{or.total.delay}}{numeric. Total time steps from end of surveillance window to response.}
 
-\item{\code{or.trigger.window}}{numeric. Number of time steps to sum I over for trigger metric.}
+\item{\code{or.trigger.window}}{numeric. Number of time steps to sum obs.TP over for trigger metric.}
 
-\item{\code{or.trigger.age.lower}}{numeric. Lower age bound for surveillance trigger (months); NA = all ages.}
+\item{\code{or.trigger.window.age.lower}}{numeric. Lower age bound for surveillance trigger (months); NA = all ages.}
 
-\item{\code{or.trigger.age.upper}}{numeric. Upper age bound for surveillance trigger (months); NA = all ages.}
-
-\item{\code{or.vacc.age.lower}}{numeric. Lower age bound for OBR vaccination campaign (months); default 0. CDF always counts from age 0; this is a vaccination floor only.}
-
-\item{\code{or.vacc.age.upper}}{numeric. Upper age bound for OBR vaccination campaign (months); NA = use or.vacc.agedist.percentile.}
+\item{\code{or.trigger.window.age.upper}}{numeric. Upper age bound for surveillance trigger (months); NA = all ages.}
 
 \item{\code{or.vacc.coverage}}{numeric. OBR campaign coverage in [0,1].}
 
 \item{\code{or.min.interval}}{numeric. Minimum time steps between successive OBR triggers.}
 
-\item{\code{or.trigger.mode}}{character. "I_scaled" (true infections times reporting rate) or "confirmed" (full observational model).}
+\item{\code{or.reporting.rate}}{numeric. Reporting rate (care-seeking x clinical recognition, pre-testing) in (0,1]; scalar or vector of length n.age.}
 
-\item{\code{or.reporting.rate}}{numeric. Reporting rate r in (0,1]; scalar or vector of length n.age.}
+\item{\code{or.non.meas.cases.by.age.month}}{matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months.}
 
-\item{\code{or.non.meas.cases.by.age.month}}{matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months. Required for "confirmed" trigger mode.}
+\item{\code{or.Se}}{numeric. Diagnostic test sensitivity in [0,1].}
 
-\item{\code{or.Se}}{numeric. Diagnostic test sensitivity in [0,1]. Required for "confirmed" trigger mode.}
+\item{\code{or.Sp}}{numeric. Diagnostic test specificity in [0,1].}
 
-\item{\code{or.Sp}}{numeric. Diagnostic test specificity in [0,1]. Required for "confirmed" trigger mode.}
+\item{\code{or.n.confirmations.target}}{numeric. Trigger threshold (sum of obs.TP over window must reach this) and per-step testing stop rule.}
 
-\item{\code{or.n.confirmations.target}}{numeric. Number of confirmed cases at which testing stops per time step (default 5).}
+\item{\code{or.response.delay}}{numeric. Time steps from trigger to campaign delivery; case age distribution accumulates over this window.}
 
-\item{\code{or.response.delay}}{numeric. Time steps from trigger to campaign delivery; case age distribution is accumulated over this window.}
+\item{\code{or.vacc.agedist.percentile}}{numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound.}
 
-\item{\code{or.vacc.agedist.percentile}}{numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound when or.vacc.age.upper is NA.}
+\item{\code{stop_testing_at_trigger}}{logical. If TRUE, campaign age targeting uses suspected cases (reporting process only); if FALSE, uses obs.TP accumulated through the response window.}
 }}
 
