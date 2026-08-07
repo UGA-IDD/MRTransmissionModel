@@ -186,46 +186,39 @@ EXt0 <- EX.Country.part1(
 
 The OBR arguments fall into three groups.
 
-**Timing** — `or.confirmation.delay + or.response.delay = or.total.delay`. At step `t`, the trigger looks backward at cases from steps `[t - or.total.delay - or.trigger.window + 1, t - or.total.delay]`. If the metric reaches `or.n.confirmations.target`, a pending state is set. The campaign fires `or.response.delay` steps later. During the response window, case age distributions accumulate to inform campaign targeting.
+**Timing** — `or.confirmation.delay + or.response.delay = or.total.delay`. At step `t`, the trigger looks backward at IgM-confirmed cases (obs.TP) from steps `[t - or.total.delay - or.trigger.window + 1, t - or.total.delay]`. If the sum reaches `or.n.confirmations.target`, a pending state is set. The campaign fires `or.response.delay` steps later. During the response window, case age distributions accumulate to inform campaign targeting.
 
 | Argument | Default | Description |
 |---|---|---|
-| `or.confirmation.delay` | required | Steps from end of surveillance window to trigger recognition (confirmation lag) |
+| `or.confirmation.delay` | required | Steps from end of surveillance window to trigger recognition. **RDT** (point-of-care rapid test): ≈1 step (∼2 weeks — results available near-immediately). **EIA/ELISA** (lab-based): ≈2 steps (∼1 month for specimen transport, lab processing, and reporting) |
 | `or.response.delay` | required | Steps from trigger to campaign delivery; case age distribution accumulates during this window |
-| `or.trigger.window` | required | Number of steps summed for the trigger metric |
+| `or.trigger.window` | required | Number of steps over which obs.TP is summed for the trigger metric |
 
-**Trigger** — `or.trigger.mode` controls what is summed over the surveillance window. OBR triggers when `metric >= or.n.confirmations.target`.
+**Trigger** — the trigger always fires on IgM-confirmed cases (obs.TP) summed over the surveillance window and age group. The observational model (Se, Sp, non-measles background) runs at every time step.
 
 | Argument | Default | Description |
 |---|---|---|
-| `or.trigger.mode` | `"I_scaled"` | `"I_scaled"`: metric = sum(I × reporting rate); `"confirmed"`: metric = sum of estimated confirmed cases from observational model |
-| `or.reporting.rate` | `1` | Scales true infections toward observed scale; scalar or per-age vector |
-| `or.n.confirmations.target` | `5` | Threshold: OBR triggers when metric ≥ this value; also the per-step testing stop rule in `"confirmed"` mode |
-| `or.trigger.age.lower` | `NA` | Lower age bound (months) for surveillance; NA = all ages |
-| `or.trigger.age.upper` | `NA` | Upper age bound (months) for surveillance; NA = all ages |
-| `or.non.meas.cases.by.age.month` | empty matrix | Age × 12-month matrix of non-measles suspected cases; required for `"confirmed"` mode |
-| `or.Se` | `NA` | Diagnostic sensitivity; required for `"confirmed"` mode |
-| `or.Sp` | `NA` | Diagnostic specificity; required for `"confirmed"` mode |
+| `or.reporting.rate` | `1` | Pre-testing fraction: care-seeking × clinical recognition; converts true I to suspected cases entering surveillance |
+| `or.non.meas.cases.by.age.month` | required | Age × 12-month matrix of non-measles rash-febrile cases; rows = model age classes, columns = calendar months |
+| `or.Se` | required | Diagnostic test sensitivity ∈ [0,1] |
+| `or.Sp` | required | Diagnostic test specificity ∈ [0,1] |
+| `or.n.confirmations.target` | `5` | Trigger threshold (sum of obs.TP over window must reach this) and per-step testing stop rule |
+| `or.trigger.window.age.lower` | `NA` | Lower age bound (months) for surveillance; NA = all ages |
+| `or.trigger.window.age.upper` | `NA` | Upper age bound (months) for surveillance; NA = all ages |
 | `or.start.timestep` | `1` | Earliest step at which OBR can trigger |
 | `or.min.interval` | required | Minimum steps between successive triggers |
 
-**Response campaign** — age targeting is either fixed (`or.vacc.age.upper`) or derived from the cumulative CDF of the case age distribution accumulated during the response window (`or.vacc.agedist.percentile`). Set `or.vacc.coverage = 0` to disable OBR without changing any other argument.
+**Response campaign** — the upper vaccination age bound is always derived from the CDF of case ages accumulated during the response window. `stop_testing_at_trigger` controls which cases go into that CDF. Set `or.vacc.coverage = 0` to disable OBR.
 
 | Argument | Default | Description |
 |---|---|---|
-| `or.vacc.agedist.percentile` | `NA` | Percentile of the cumulative case age CDF used as upper vaccination bound; used when `or.vacc.age.upper` is NA |
-| `or.vacc.age.lower` | `0` | Vaccination floor (months); CDF always counts from age 0 regardless |
-| `or.vacc.age.upper` | `NA` | Fixed upper vaccination age (months); if specified, overrides `or.vacc.agedist.percentile` |
+| `or.vacc.agedist.percentile` | required | Percentile (0–1) of the cumulative case age CDF used as the upper vaccination age bound |
+| `stop_testing_at_trigger` | `FALSE` | Controls which cases build the campaign age-targeting CDF. **`FALSE` (RDT)**: CDF built from obs.TP (IgM-confirmed cases); testing continues through the response window — feasible when RDT results are available at point-of-care. **`TRUE` (EIA/ELISA)**: CDF built from all suspected cases (true.reported + non-measles background; reporting process only) — appropriate when lab turnaround is long enough that field teams rely on clinical epi rather than confirmed results for age targeting |
 | `or.vacc.coverage` | required | Campaign coverage in [0,1]; set to 0 to disable OBR |
 
-**Within-step timing** — at each step: trigger check (looks backward) → campaign delivery if response delay elapsed → state update → case age accumulation for pending response window. In `"confirmed"` mode the per-step confirmed case count is stored after the state update, so future trigger evaluations see the post-campaign case trajectory.
+**Within-step timing** — at each step: trigger check (looks backward at obs.TP) → campaign delivery if response delay elapsed → state update → observational model fills obs.TP[,t] → accumulate case ages for pending response window.
 
-**The observational model runs inline in the loop at every timestep** (when `or.Se`, `or.Sp`, and `or.non.meas.cases.by.age.month` are provided). It serves two roles simultaneously:
-
-1. *Trigger metric*: if `or.trigger.mode == "confirmed"`, the per-step confirmed case count (summed across the trigger age group) is derived from the inline obs model matrices and stored in `confirmed.trigger[]` for use in future trigger evaluations.
-2. *Response window accumulation*: age-specific cases are drawn from the inline obs model matrices and accumulated into `pending.case.by.age` — using confirmed cases (TP + FP_test + TP_clinical + FP_clinical) when `or.trigger.mode == "confirmed"`, or suspected cases (I×r + non-measles) when `or.trigger.mode == "I_scaled"`. At campaign delivery, the CDF of this vector determines the upper vaccination age bound.
-
-The six 6-category age × timestep output matrices are stored as slots in the result object and are available immediately after `run()` completes: `result@result@obs.TP`, `result@result@obs.FN_test`, `result@result@obs.FP_test`, `result@result@obs.TN`, `result@result@obs.TP_clinical`, `result@result@obs.FP_clinical`.
+**The observational model runs at every time step** and produces six age × timestep matrices stored on the result object: `result@result@obs.TP`, `result@result@obs.FN_test`, `result@result@obs.FP_test`, `result@result@obs.TN`, `result@result@obs.TP_clinical`, `result@result@obs.FP_clinical`.
 
 ## 4.1 Argument walkthrough — one complete scenario
 
@@ -333,51 +326,82 @@ result.obr <- EX.Country.part2.OR(
   # Can differ from part1. Lower values reduce background noise in the trigger metric;
   # higher values ensure the model does not go extinct between epidemics.
 
-  # --- OBR trigger definition ---
+  # --- Observational model ---
+  # Required by all OBR scenarios. Converts true infections into the surveillance
+  # case counts that drive the trigger and campaign age targeting.
 
-  or.confirmation.delay          = 2,
-  # Time steps from end of surveillance window to case confirmation (lab + reporting).
-  # 2 steps = 1 month.
+  or.reporting.rate              = 0.10,
+  # Pre-testing fraction: care-seeking × clinical recognition.
+  # ~10% of true infections present to a health facility as a suspected case.
+  # This is before any diagnostic test is done.
 
-  or.response.delay              = 2,
-  # Time steps from confirmation to campaign delivery (mobilization + logistics).
-  # 2 steps = 1 month. or.total.delay = or.confirmation.delay + or.response.delay = 4.
+  or.non.meas.cases.by.age.month = outer(
+    0.4 * exp(-EXt0@trans@age.class / 48),          # age-declining background rate
+    c(1.15, 1.15, 1.10, 1.05, 1.00, 0.90,           # Jan-Jun seasonal multipliers
+      0.85, 0.85, 0.90, 0.95, 1.05, 1.15)),         # Jul-Dec seasonal multipliers
+  # Non-measles suspected cases per time step by age class (rows) and calendar month (columns).
+  # The entries are counts of non-measles rash-febrile illness reaching the surveillance system.
+  # Here: exponentially declining with age (peak in infants), 20% higher in Zambia rainy season.
 
-  or.trigger.window              = 2,
-  # Number of time steps over which cumulative I is summed for the trigger metric.
-  # 2 steps = 1 month of summed infectious prevalence.
-  # Shorter window = more reactive (responds to recent spikes).
-  # Longer window = more smoothed (filters out noise, responds to sustained outbreaks).
+  or.Se                          = 0.95,
+  # IgM test sensitivity. Standard measles value from the literature.
 
-  or.trigger.age.lower           = 6,
-  or.trigger.age.upper           = 179,
-  # Surveillance is restricted to children aged 6 months - 14 years.
+  or.Sp                          = 0.97,
+  # IgM test specificity.
+
+  # --- OBR trigger ---
+
+  or.n.confirmations.target      = 5,
+  # Trigger threshold: OBR fires when the sum of obs.TP (IgM-confirmed measles)
+  # over the trigger age group and window reaches this value.
+  # Also controls the per-step testing budget: test enough suspected cases to expect
+  # this many positives, then stop.
+
+  or.confirmation.delay          = 1,
+  # Steps from end of surveillance window to trigger recognition.
+  # RDT (point-of-care): 1 step ≈ 2 weeks — results available near-immediately.
+  # EIA/ELISA alternative: 2 steps ≈ 1 month for specimen transport + lab processing.
+
+  or.response.delay              = 6,
+  # Steps from trigger recognition to campaign delivery (mobilization + logistics).
+  # 6 steps = 3 months. or.total.delay = 1 + 6 = 7.
+
+  or.trigger.window              = 4,
+  # Number of steps over which obs.TP is summed for the trigger metric.
+  # 4 steps = 2 months. Shorter = more reactive; longer = smoother signal.
+
+  or.trigger.window.age.lower    = 6,
+  or.trigger.window.age.upper    = 179,
+  # Surveillance restricted to children 6 months – 14 years.
   # NA for both = watch all age classes.
-  # Focusing surveillance on children reflects where measles is detected first.
 
   # --- OBR response campaign ---
 
-  or.vacc.age.lower              = 6,
-  or.vacc.age.upper              = 59,
-  # Campaign targets children aged 6 months - 4 years.
-  # OBR campaigns typically target children because they drive transmission.
-  # Lower bound of 6 months reflects minimum vaccine-eligible age.
-
   or.vacc.coverage               = 0.85,
-  # Nominal campaign coverage. Applied as independent doses on top of whatever
-  # routine/SIA vaccination is already scheduled at the same time step:
+  # Nominal campaign coverage. Applied on top of any routine/SIA dose at the same step:
   #   effective_prob = p_routine + p_obr - p_routine * p_obr
   # So OBR reaches some already-vaccinated children — net gain is less than 0.85.
 
+  or.vacc.agedist.percentile     = 0.95,
+  # The upper vaccination age bound is the 95th percentile of the cumulative case age CDF
+  # built from cases accumulated during the response window.
+  # A value of 0.95 means: vaccinate all ages from the youngest age class up to the age
+  # below which 95% of outbreak cases occurred.
+
+  stop_testing_at_trigger        = FALSE,
+  # FALSE (RDT scenario): case age CDF is built from obs.TP — IgM-confirmed cases only.
+  #   RDT results are available at point-of-care, so testing continues through the response
+  #   window and the CDF reflects confirmed measles.
+  # TRUE (EIA/ELISA scenario): CDF is built from all suspected cases (true.reported +
+  #   non-measles background). Use when lab turnaround means field teams rely on clinical
+  #   epi for age targeting rather than waiting for confirmed results.
+
   or.min.interval                = 48,
-  # Minimum time steps between successive OBR triggers = 2 years.
-  # Prevents the model from triggering back-to-back campaigns during a prolonged
-  # outbreak that stays above threshold.
+  # Minimum steps between successive OBR triggers = 2 years.
+  # Prevents back-to-back campaigns during a prolonged outbreak above threshold.
 
   or.start.timestep              = (2020 - year) * 24 + 1
-  # OBR cannot trigger before time step (2020-1980)*24+1 = 961.
-  # Use this to represent: OBR program not yet established, political will,
-  # or a period when you want to measure "what if OBR had been available from 2020."
+  # OBR cannot trigger before this step — here 2020.
   # Formula: (target_year - start_year) * steps_per_year + 1
 )
 ```
@@ -401,6 +425,15 @@ For most OBR questions, **routine + SIA without OBR** is the right baseline. Tha
 
 
 ## 5.2 Running all four baseline scenarios
+
+```{r shared-obs-setup}
+# Shared observational model inputs used by all four scenarios.
+# Build once; pass to each EX.Country.part2.OR() call.
+age.bg.rate <- 0.4 * exp(-EXt0@trans@age.class / 48)
+month.mult  <- c(1.15, 1.15, 1.10, 1.05, 1.00, 0.90,
+                 0.85, 0.85, 0.90, 0.95, 1.05, 1.15)
+non.meas.bg <- outer(age.bg.rate, month.mult)
+```
 
 ```{r sc1, cache=TRUE}
 # Scenario 1: No vaccination (OBR disabled via or.vacc.coverage = 0)
@@ -436,14 +469,19 @@ sc1 <- EX.Country.part2.OR(
   MR1SIAcorrelation              = FALSE,
   MR2SIAcorrelation              = FALSE,
   intro.rate                     = 1 / 24 / 320,
+  or.reporting.rate              = 0.10,
+  or.non.meas.cases.by.age.month = non.meas.bg,
+  or.Se                          = 0.95,
+  or.Sp                          = 0.97,
+  or.n.confirmations.target      = 5,
   or.confirmation.delay          = 2,
   or.response.delay              = 2,
   or.trigger.window              = 2,
-  or.trigger.age.lower           = 0,
-  or.trigger.age.upper           = 168,
-  or.vacc.age.lower              = 6,
-  or.vacc.age.upper              = 168,
+  or.trigger.window.age.lower    = 0,
+  or.trigger.window.age.upper    = 168,
   or.vacc.coverage               = 0,
+  or.vacc.agedist.percentile     = 0.95,
+  stop_testing_at_trigger        = FALSE,
   or.min.interval                = 48,
   or.start.timestep              = (2020 - year) * 24 + 1
 )
@@ -484,14 +522,19 @@ sc2 <- EX.Country.part2.OR(
   MR1SIAcorrelation              = FALSE,
   MR2SIAcorrelation              = FALSE,
   intro.rate                     = 1 / 24 / 320,
+  or.reporting.rate              = 0.10,
+  or.non.meas.cases.by.age.month = non.meas.bg,
+  or.Se                          = 0.95,
+  or.Sp                          = 0.97,
+  or.n.confirmations.target      = 5,
   or.confirmation.delay          = 2,
   or.response.delay              = 2,
   or.trigger.window              = 2,
-  or.trigger.age.lower           = 0,
-  or.trigger.age.upper           = 168,
-  or.vacc.age.lower              = 6,
-  or.vacc.age.upper              = 168,
+  or.trigger.window.age.lower    = 0,
+  or.trigger.window.age.upper    = 168,
   or.vacc.coverage               = 0,
+  or.vacc.agedist.percentile     = 0.95,
+  stop_testing_at_trigger        = FALSE,
   or.min.interval                = 48,
   or.start.timestep              = (2020 - year) * 24 + 1
 )
@@ -531,14 +574,19 @@ sc3 <- EX.Country.part2.OR(
   MR1SIAcorrelation              = FALSE,
   MR2SIAcorrelation              = FALSE,
   intro.rate                     = 1 / 24 / 320,
+  or.reporting.rate              = 0.10,
+  or.non.meas.cases.by.age.month = non.meas.bg,
+  or.Se                          = 0.95,
+  or.Sp                          = 0.97,
+  or.n.confirmations.target      = 5,
   or.confirmation.delay          = 2,
   or.response.delay              = 2,
   or.trigger.window              = 2,
-  or.trigger.age.lower           = 0,
-  or.trigger.age.upper           = 168,
-  or.vacc.age.lower              = 6,
-  or.vacc.age.upper              = 168,
+  or.trigger.window.age.lower    = 0,
+  or.trigger.window.age.upper    = 168,
   or.vacc.coverage               = 0,
+  or.vacc.agedist.percentile     = 0.95,
+  stop_testing_at_trigger        = FALSE,
   or.min.interval                = 48,
   or.start.timestep              = (2020 - year) * 24 + 1
 )
@@ -546,62 +594,61 @@ sc3 <- EX.Country.part2.OR(
 
 ## 5.2b Understanding the trigger threshold
 
-The trigger fires when the metric over the surveillance window reaches `or.n.confirmations.target` (default 5). This is the same value that controls when routine testing stops per time step — operationally, the same 5-confirmed-case rule that ends the diagnostic protocol also triggers the OBR campaign.
+The trigger fires when the sum of `obs.TP` (IgM-confirmed measles cases) over the surveillance window and age group reaches `or.n.confirmations.target` (default 5). This is the same value that controls the per-step testing budget: the model tests just enough suspected cases to expect 5 IgM positives, then stops.
 
-In `"I_scaled"` mode, `or.reporting.rate` must be calibrated so that scaled infections are on the same scale as confirmed cases (i.e., reaching 5 scaled infections corresponds to reaching 5 confirmed cases in the field). In `"confirmed"` mode, the metric is directly the estimated total confirmed case count from the observational model, so no additional calibration of `or.n.confirmations.target` is needed.
+`or.n.confirmations.target = 5` operationally represents the outbreak detection threshold used in the field — a cluster of 5 confirmed cases is the signal that prompts an OBR response.
 
-A practical approach: run a scenario (no OBR) and plot the trigger metric over time to verify that `or.n.confirmations.target = 5` fires at plausible outbreak moments.
+A practical approach: run sc3 (no OBR) and plot `obs.TP` over time to verify the threshold fires at plausible outbreak moments.
 
 ```{r threshold-exploration}
-rc     <- sc3@result@.Data
-i.inds <- sc3@result@i.inds
+rc.tp  <- sc3@result@obs.TP
 age.cl <- sc3@result@age.class
-n      <- ncol(rc)
+n      <- ncol(rc.tp)
 
-# Restrict to 0-14 years (0-168 months) — the trigger age group
+# Restrict to 0-14 years — the trigger age group
 trigger.age.pos <- which(age.cl > 0 & age.cl <= 168)
-trigger.i.inds  <- i.inds[trigger.age.pos]
 
-# Sum I across the trigger age group at each time step
-I.timestep <- colSums(rc[trigger.i.inds, ])
-t.vec      <- year + (seq_len(n) - 1) * 0.5 / 12
+# Sum obs.TP across the trigger age group at each time step
+TP.timestep <- colSums(rc.tp[trigger.age.pos, ])
+t.vec       <- year + (seq_len(n) - 1) * 0.5 / 12
 
-# Rolling sum over w time steps (NA for the first w-1 steps)
+# Rolling sum over w time steps
 rolling.sum <- function(x, w) {
   sapply(seq_along(x), function(t) if (t < w) NA else sum(x[(t - w + 1):t]))
 }
 
-plot(t.vec, I.timestep,
+plot(t.vec, TP.timestep,
      type = "l", col = "gray70", lwd = 1,
-     xlab = "Year", ylab = "Sum of I (ages 0-14)",
-     main = "Incidence at different smoothing windows")
-lines(t.vec, rolling.sum(I.timestep, 2), col = "steelblue",   lwd = 1.5)
-lines(t.vec, rolling.sum(I.timestep, 4), col = "darkorange",  lwd = 1.5)
-lines(t.vec, rolling.sum(I.timestep, 8), col = "forestgreen", lwd = 1.5)
+     xlab = "Year", ylab = "obs.TP (IgM-confirmed, ages 0-14)",
+     main = "Confirmed measles cases at different smoothing windows")
+lines(t.vec, rolling.sum(TP.timestep, 2), col = "steelblue",   lwd = 1.5)
+lines(t.vec, rolling.sum(TP.timestep, 4), col = "darkorange",  lwd = 1.5)
+lines(t.vec, rolling.sum(TP.timestep, 8), col = "forestgreen", lwd = 1.5)
+abline(h = 5, lty = 2, col = "red", lwd = 1)
 legend("topright",
-       legend = c("1 step (2 wks)", "2 steps (1 mo)", "4 steps (2 mo)", "8 steps (4 mo)"),
-       col    = c("gray70", "steelblue", "darkorange", "forestgreen"),
-       lwd    = c(1, 1.5, 1.5, 1.5), bty = "n")
+       legend = c("1 step (2 wks)", "2 steps (1 mo)", "4 steps (2 mo)", "8 steps (4 mo)",
+                  "threshold = 5"),
+       col    = c("gray70", "steelblue", "darkorange", "forestgreen", "red"),
+       lty    = c(1, 1, 1, 1, 2),
+       lwd    = c(1, 1.5, 1.5, 1.5, 1), bty = "n")
 ```
 
-### Key learning point: model I vs. reported cases
+### Key learning point: the two-stage observation process
 
-The y-axis here is the **sum of I from the model** — meaning true infectious individuals. In `"I_scaled"` mode, the trigger metric is `sum(I × reporting_rate)` — scaled infections. The reporting rate `r` (set via `or.reporting.rate`) converts true infections to roughly the scale of reported/confirmed cases, so that reaching `or.n.confirmations.target = 5` corresponds to 5 confirmed cases in the field.
+The trigger operates on `obs.TP`, not on raw model infections. Two parameters govern how true infections become `obs.TP`:
 
-In practice, only a fraction φ ("phi") of true infections ever become a reported case. A child has to:
+- **`or.reporting.rate`** (pre-testing): what fraction of true infections reach a health facility as a suspected case (care-seeking × clinical recognition). Typically 1–10% in high-burden settings.
+- **`or.Se`** (diagnostic): given a true measles suspected case that gets tested, what is the probability the IgM test comes back positive.
 
-1. develop symptoms severe enough to seek care
-2. be recognized as a suspected measles case by a clinician
-3. have a specimen collected and tested (if confirmation is required)
-
-Estimates of φ for measles in high-burden settings often range from 1% to 10%, meaning 90–99% of infections are never counted. The `or.reporting.rate` parameter captures this fraction — calibrating it so that `sum(I × r) >= 5` fires when the surveillance system would genuinely observe 5 confirmed cases.
-
-In `"confirmed"` mode, the observational model handles this scaling automatically via Se, Sp, and the non-measles background, so `or.reporting.rate` need only capture the pre-testing reporting fraction (care-seeking × clinical recognition).
+Together they determine `obs.TP ≈ I × or.reporting.rate × or.Se`. Calibrate `or.reporting.rate` so that `obs.TP` over the trigger window reaches 5 at plausible outbreak moments — check against the plot above.
 
 Back to the other scenarios.
 
 ```{r sc4, cache=TRUE}
-# Scenario 4: Routine + SIA + OBR
+# Scenario 4: Routine + SIA + RDT OBR (age targets from IgM-confirmed cases)
+# RDT (rapid diagnostic test): near-zero lab delay — results available at point-of-care.
+# Testing continues through the response window, so the campaign age CDF is built from
+# confirmed measles cases (obs.TP). or.confirmation.delay = 1 (~2-week turnaround).
 sc4 <- EX.Country.part2.OR(
   uncode                         = setup$uncode,
   generation.time                = 0.5,
@@ -634,18 +681,75 @@ sc4 <- EX.Country.part2.OR(
   MR1SIAcorrelation              = FALSE,
   MR2SIAcorrelation              = FALSE,
   intro.rate                     = 1 / 24 / 320,
-  or.trigger.mode                = "I_scaled",
-  or.reporting.rate              = 0.01,
+  or.reporting.rate              = 0.10,
+  or.non.meas.cases.by.age.month = non.meas.bg,
+  or.Se                          = 0.95,
+  or.Sp                          = 0.97,
   or.n.confirmations.target      = 5,
-  or.confirmation.delay          = 2,
-  or.response.delay              = 8,
-  or.trigger.window              = 2,
-  or.trigger.age.lower           = 0,
-  or.trigger.age.upper           = 168,
-  or.vacc.age.lower              = 6,
-  or.vacc.age.upper              = 168,
-  or.vacc.agedist.percentile     = NA_real_,
-  or.vacc.coverage               = 0.8,
+  or.confirmation.delay          = 1,           # RDT: ~2-week point-of-care turnaround
+  or.response.delay              = 6,           # 3-month mobilization lag
+  or.trigger.window              = 4,           # 2-month lookback window
+  or.trigger.window.age.lower    = 0,
+  or.trigger.window.age.upper    = 168,
+  or.vacc.coverage               = 0.85,
+  or.vacc.agedist.percentile     = 0.95,
+  stop_testing_at_trigger        = FALSE,       # RDT: age CDF from confirmed cases (obs.TP)
+  or.min.interval                = 48,
+  or.start.timestep              = (2005 - year) * 24 + 1
+)
+```
+
+```{r sc5, cache=TRUE}
+# Scenario 5: Routine + SIA + EIA OBR (age targets from suspected cases)
+# EIA/ELISA (enzyme immunoassay): ~1-month lab turnaround means confirmed results are
+# not available before the campaign launches. stop_testing_at_trigger = TRUE uses
+# clinical suspected cases for age targeting rather than waiting for lab confirmation.
+# or.confirmation.delay = 2 (~1 month for specimen transport + lab processing + reporting).
+sc5 <- EX.Country.part2.OR(
+  uncode                         = setup$uncode,
+  generation.time                = 0.5,
+  pop.rescale                    = setup$pop.total.1950.2100[
+                                     seq(1990, (year + t.max - 10), 10) - 1950 + 1],
+  pop.time                       = seq(1990, (year + t.max - 10), 10) - year,
+  is.stochastic                  = FALSE,
+  t.max                          = t.max,
+  rescale.WAIFW                  = FALSE,
+  yr.births.per.1000.acrossyears = setup$cbr.1950.2100[
+                                     (year - 1950 + 1):((year - 1950 + 1) + t.max)],
+  asdr.object                    = setup$asdr.object,
+  year                           = year,
+  EXt0                           = EXt0,
+  time.specific.MR1cov           = setup$MCV1.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.MR2cov           = setup$MCV2.coverage.1980to2100[(year - 1980 + 1):t.max],
+  time.specific.SIAcov           = setup$measlesSIA.coverage.1980to2100[(year - 1980 + 1):t.max]*0.3,
+  time.specific.min.age.MR1      = rep(9,  t.max),
+  time.specific.max.age.MR1      = rep(24, t.max),
+  time.specific.min.age.MR2      = rep(25, t.max),
+  time.specific.max.age.MR2      = rep(36, t.max),
+  time.specific.min.age.SIA      = setup$age.min.sia.measles[(year - 1980 + 1):t.max],
+  time.specific.max.age.SIA      = setup$age.max.sia.measles[(year - 1980 + 1):t.max],
+  obj.vcdf.MR1                   = get.MR1cdf.survival(uncode = setup$uncode, 1, 24),
+  obj.vcdf.MR2                   = get.vcdf.normal(25, 36),
+  obj.prob.vsucc                 = pvacsuccess(EXt0@trans@age.class,
+                                               get.boulianne.vsucc()),
+  sia.timing.in.year             = 3 / 12,
+  MR1MR2correlation              = TRUE,
+  MR1SIAcorrelation              = FALSE,
+  MR2SIAcorrelation              = FALSE,
+  intro.rate                     = 1 / 24 / 320,
+  or.reporting.rate              = 0.10,
+  or.non.meas.cases.by.age.month = non.meas.bg,
+  or.Se                          = 0.95,
+  or.Sp                          = 0.97,
+  or.n.confirmations.target      = 5,
+  or.confirmation.delay          = 2,           # EIA: ~1-month lab turnaround
+  or.response.delay              = 6,           # 3-month mobilization lag
+  or.trigger.window              = 4,           # 2-month lookback window
+  or.trigger.window.age.lower    = 0,
+  or.trigger.window.age.upper    = 168,
+  or.vacc.coverage               = 0.85,
+  or.vacc.agedist.percentile     = 0.95,
+  stop_testing_at_trigger        = TRUE,        # EIA: age CDF from suspected cases
   or.min.interval                = 48,
   or.start.timestep              = (2005 - year) * 24 + 1
 )
@@ -670,47 +774,57 @@ I.sc1 <- get.annual.I(sc1, year, t.max)
 I.sc2 <- get.annual.I(sc2, year, t.max)
 I.sc3 <- get.annual.I(sc3, year, t.max)
 I.sc4 <- get.annual.I(sc4, year, t.max)
+I.sc5 <- get.annual.I(sc5, year, t.max)
 
 plot(years.sim, I.sc1, type = "l", lwd = 2, col = "gray50",
      xlab = "Year", ylab = "Annual sum of I",
      main = "Measles burden by scenario",
-     ylim = range(c(I.sc1, I.sc2, I.sc3, I.sc4)))
+     ylim = range(c(I.sc1, I.sc2, I.sc3, I.sc4, I.sc5)))
 lines(years.sim, I.sc2, lwd = 2, col = "steelblue")
 lines(years.sim, I.sc3, lwd = 2, col = "darkorange")
 lines(years.sim, I.sc4, lwd = 2, col = "forestgreen")
+lines(years.sim, I.sc5, lwd = 2, col = "purple")
 
-# Mark OBR campaign years
-obr.steps <- which(sc4@result@or.times == 1)
-obr.yrs   <- year + (obr.steps - 1) * 0.5 / 12
-abline(v = obr.yrs, lty = 3, col = "forestgreen", lwd = 0.8)
+# Mark OBR campaign years (sc4 = RDT, sc5 = EIA)
+obr.steps.sc4 <- which(sc4@result@or.times == 1)
+obr.steps.sc5 <- which(sc5@result@or.times == 1)
+abline(v = year + (obr.steps.sc4 - 1) * 0.5 / 12, lty = 3, col = "forestgreen", lwd = 0.8)
+abline(v = year + (obr.steps.sc5 - 1) * 0.5 / 12, lty = 3, col = "purple",      lwd = 0.8)
 
 legend("topright",
        legend = c("No vaccination", "Routine only", "Routine + SIA",
-                  "Routine + SIA + OBR", "OBR campaign"),
-       col    = c("gray50", "steelblue", "darkorange", "forestgreen", "forestgreen"),
-       lty    = c(1, 1, 1, 1, 3), lwd = 2, bty = "n")
+                  "Routine + SIA + RDT OBR", "Routine + SIA + EIA OBR"),
+       col    = c("gray50", "steelblue", "darkorange", "forestgreen", "purple"),
+       lty    = c(1, 1, 1, 1, 1), lwd = 2, bty = "n")
 ```
 
 ### Cumulative burden table
 
 ```{r burden-table}
 data.frame(
-  Scenario         = c("No vaccination", "Routine only",
-                       "Routine + SIA", "Routine + SIA + OBR"),
-  Cumulative_I     = round(c(sum(I.sc1), sum(I.sc2), sum(I.sc3), sum(I.sc4))),
-  Pct_reduction_vs_sc3 = round(100 * (1 - c(sum(I.sc1), sum(I.sc2),
-                                              sum(I.sc3), sum(I.sc4)) / sum(I.sc3)), 1)
+  Scenario         = c("No vaccination", "Routine only", "Routine + SIA",
+                       "Routine + SIA + RDT OBR", "Routine + SIA + EIA OBR"),
+  Cumulative_I     = round(c(sum(I.sc1), sum(I.sc2), sum(I.sc3),
+                               sum(I.sc4), sum(I.sc5))),
+  Pct_reduction_vs_sc3 = round(100 * (1 - c(sum(I.sc1), sum(I.sc2), sum(I.sc3),
+                                              sum(I.sc4), sum(I.sc5)) / sum(I.sc3)), 1)
 )
 ```
 
 ### When did OBR campaigns fire?
 
 ```{r obr-times}
-obr.steps <- which(sc4@result@or.times == 1)
-obr.years <- year + (obr.steps - 1) * 0.5 / 12
-cat("OBR campaigns fired at calendar years:\n")
-print(round(obr.years, 2))
-cat("\nTotal OBR campaigns:", length(obr.years), "\n")
+obr.steps.sc4 <- which(sc4@result@or.times == 1)
+obr.years.sc4 <- year + (obr.steps.sc4 - 1) * 0.5 / 12
+cat("RDT OBR campaigns (sc4) fired at calendar years:\n")
+print(round(obr.years.sc4, 2))
+cat("Total:", length(obr.years.sc4), "\n\n")
+
+obr.steps.sc5 <- which(sc5@result@or.times == 1)
+obr.years.sc5 <- year + (obr.steps.sc5 - 1) * 0.5 / 12
+cat("EIA OBR campaigns (sc5) fired at calendar years:\n")
+print(round(obr.years.sc5, 2))
+cat("Total:", length(obr.years.sc5), "\n")
 ```
 
 ---
