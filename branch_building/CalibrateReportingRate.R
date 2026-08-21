@@ -23,7 +23,7 @@
 #   2. Run n.reps stochastic replicates with EX.Country.part2() — no OBR
 #      machinery needed, just raw transmission + vaccination dynamics.
 #   3. For each run, find epidemic onset moments in the post-eval.year window:
-#      first time I grows for n.consec consecutive steps after a trough.
+#      first time Reff crosses from <=1 to >1 (next-generation matrix approach).
 #   4. Record total true I at each onset, pool across all runs.
 #   5. Apply the 5-rule.
 # ============================================================
@@ -39,7 +39,6 @@ year           <- 1980     # simulation start year (must match EXt0)
 t.max          <- 45       # years to simulate (1980–2025)
 hist.year      <- 2015     # use actual coverage up to (but not including) this year
 eval.year      <- 2015     # earliest year to look for epidemic onsets (10-year window: 2015–2025)
-n.consec       <- 3        # consecutive growing steps required to call Rt > 1 (3 steps = 6 weeks)
 or.Se          <- 0.95     # IgM sensitivity (only used when SIMPLE.FORMULA = FALSE)
 or.trigger.win <- 4        # trigger window steps (only used when SIMPLE.FORMULA = FALSE)
 n.target       <- 5        # confirmations target (or.n.confirmations.target)
@@ -95,27 +94,28 @@ siacov[eval.idx] <- 0
 t.eval.start <- (eval.year - year) * 24 + 1
 
 # ============================================================
-# Step 2: Helper — find epidemic onset timesteps
+# Step 2: Helper — find epidemic onset timesteps via Reff > 1 crossings
 # ============================================================
 #
-# Returns indices (relative to the input I.total vector) of epidemic onsets.
-# An onset = first step of a run of >= n.consec consecutive steps where
-# I(t) > I(t-1), not already inside a flagged epidemic.
+# Returns indices (relative to Reff / I.total vectors) of epidemic onsets.
+# An onset = first step where Reff crosses from <=1 to >1,
+# not already inside a flagged epidemic.
 # Epidemic state resets once I drops below reset.fraction * I_at_onset.
 
-find_epidemic_onsets <- function(I.total, n.consec = 3, reset.fraction = 0.5) {
-  n       <- length(I.total)
-  growing <- c(FALSE, diff(I.total) > 0)
+find_reff_onsets <- function(Reff, I.total, n.above = 2, reset.fraction = 0.5) {
+  n     <- length(Reff)
+  above <- Reff > 1
 
   onsets  <- integer(0)
   in.epi  <- FALSE
   onset.I <- NA_real_
 
-  for (t in n.consec:n) {
-    sustained <- all(growing[(t - n.consec + 1):t])
+  for (t in n.above:n) {
+    sustained  <- all(above[(t - n.above + 1):t])
+    prev.above <- if (t > n.above) above[t - n.above] else FALSE
 
-    if (sustained && !in.epi) {
-      onset.t <- t - n.consec + 1
+    if (sustained && !prev.above && !in.epi) {
+      onset.t <- t - n.above + 1
       onsets  <- c(onsets, onset.t)
       in.epi  <- TRUE
       onset.I <- I.total[onset.t]
@@ -178,11 +178,28 @@ for (rep in seq_len(n.reps)) {
     intro.rate                     = 1 / 24 / 320
   )
 
-  I.mat   <- result@result@.Data[result@result@i.inds, ]
-  I.total <- colSums(I.mat)
-  I.eval  <- I.total[t.eval.start:length(I.total)]
+  waifw  <- as.matrix(result@experiment.def@trans@waifw)
+  n.t    <- ncol(result@result)
+  t.eval <- t.eval.start:n.t
 
-  onsets <- find_epidemic_onsets(I.eval, n.consec = n.consec)
+  Reff.eval <- numeric(length(t.eval))
+  I.eval    <- numeric(length(t.eval))
+
+  for (k in seq_along(t.eval)) {
+    t <- t.eval[k]
+
+    #totpop <- result@result[result@result@m.inds,t]+result@result[result@result@i.inds,t]+
+    #          result@result[result@result@r.inds,t]+result@result[result@result@v.inds,t]+
+    #          result@result[result@result@s.inds,t]
+    suspop <- result@result[result@result@s.inds, t]
+    denom  <- sum(result@result[, t])
+
+    next.gen      <- suspop * (1 - exp(-waifw / denom))
+    Reff.eval[k]  <- Re(eigen(next.gen, only.values = TRUE)$values[1])
+    I.eval[k]     <- sum(result@result[result@result@i.inds, t])
+  }
+
+  onsets <- find_reff_onsets(Reff.eval, I.eval)
   if (length(onsets) > 0) {
     all.onset.I <- c(all.onset.I, I.eval[onsets])
   }
