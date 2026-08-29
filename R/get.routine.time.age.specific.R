@@ -44,11 +44,19 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
       high.age <- age.min.MR1[j]:age.max.MR1[j]
       age.sz <- high.age-low.age
       ts.per.class <- age.sz/time.step
-      if (age.min.MR1[j]==age.max.MR1[j]) ts.per.class <- 1
       final.pdf <- 1-(1-h)^(1/ts.per.class)
       pdf.scaled.vaccination <- pmax(final.pdf,0)
-      time.specific.routine[j,age.classes %in% c(age.min.MR1[j]:age.max.MR1[j])] <-  pdf.scaled.vaccination*prob.success.MR1 #pdf*prob.success.MR1 = rep(0.04, 12); sum(rep(0.04, 12)) = 0.48 = ve1*mcv1, check
-      #time.specific.routine[j,age.classes %in% c(age.min.MR1[j]:age.max.MR1[j])] <-  pdf*prob.success.MR1
+      pvacc <- pdf.scaled.vaccination * prob.success.MR1 #pdf*prob.success.MR1 = rep(0.04, 12); sum(rep(0.04, 12)) = 0.48 = ve1*mcv1, check
+
+      if (age.min.MR1[j] == age.max.MR1[j]) {
+        # Children spend geometric(aging_rate) steps in the class and are re-eligible
+        # for vaccination each step. Calibrate pvacc so steady-state cohort coverage = mcv1*VE.
+        # steady-state = 2p/(1+p) = mcv1*VE  ->  p* = mcv1*VE / (2 - mcv1*VE)
+        design_target <- time.specific.MR1cov[j] * prob.success.MR1
+        pvacc[] <- design_target / (2 - design_target)
+      }
+
+      time.specific.routine[j,age.classes %in% c(age.min.MR1[j]:age.max.MR1[j])] <- pvacc
       one.minus.ve1[j] <- sum(pdf/sum(pdf)*(1-prob.success.MR1)) #using pdf/sum(pdf) to get weighted average 1-VE1 = 0.2, check
       prop.fail.MR1[j] <- sum(pdf*(1-prob.success.MR1)) # = 0.12 = (1-ve1)*mcv1, proportion of total population with primary failure from MR1, check
       prop.fail.MR1.byage[j,age.classes %in% c(age.min.MR1[j]:age.max.MR1[j])] <- pdf*(1-prob.success.MR1)
@@ -62,17 +70,19 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
       #S <- cumprod(1 - h.recovered) # rebuild the survival function and total coverage
       #stopifnot(abs(time.specific.MR1cov[j] - (1 - S[length(S)])) < 1e-6)
 
-      #check it worked #2
-      prob_not_vacc <- 1
-      total_vacc_prob <- 0
-      for (age.idx in seq_along(pdf.scaled.vaccination)) {
-        for (step in 1:ts.per.class[age.idx]) {
-          total_vacc_prob <- total_vacc_prob + prob_not_vacc * pdf.scaled.vaccination[age.idx] * prob.success.MR1[age.idx]
-          prob_not_vacc  <- prob_not_vacc * (1 - pdf.scaled.vaccination[age.idx])
+      # check it worked #2 - validates the uncalibrated hazard formula; skip when calibration override is active
+      if (age.min.MR1[j] != age.max.MR1[j]) {
+        prob_not_vacc <- 1
+        total_vacc_prob <- 0
+        for (age.idx in seq_along(pdf.scaled.vaccination)) {
+          for (step in 1:ts.per.class[age.idx]) {
+            total_vacc_prob <- total_vacc_prob + prob_not_vacc * pdf.scaled.vaccination[age.idx] * prob.success.MR1[age.idx]
+            prob_not_vacc  <- prob_not_vacc * (1 - pdf.scaled.vaccination[age.idx])
+          }
         }
+        expected <- (time.specific.MR1cov[j] - prop.fail.MR1[j])
+        stopifnot(abs(total_vacc_prob - expected) < 1e-6)
       }
-      expected <- (time.specific.MR1cov[j] - prop.fail.MR1[j])
-      stopifnot(abs(total_vacc_prob - expected) < 1e-6)
     }
   }
 
@@ -97,10 +107,16 @@ get.routine.time.age.specific <- function(time.step=0.5, age.classes = c(1:240, 
       high.age <- age.min.MR2[j]:age.max.MR2[j]
       age.sz <- high.age-low.age
       ts.per.class <- age.sz/time.step
-      if (age.min.MR2[j]==age.max.MR2[j]) ts.per.class <- 1
       final.pdf <- 1-(1-h)^(1/ts.per.class)
       pdf.scaled.vaccination <- pmax(final.pdf,0)
-      time.specific.routine[j,age.classes %in% c(age.min.MR2[j]:age.max.MR2[j])] <- pdf.scaled.vaccination*prob.success.MR2
+      pvacc <- pdf.scaled.vaccination * prob.success.MR2
+
+      if (age.min.MR2[j] == age.max.MR2[j]) {
+        design_target <- cdf.scaled.vaccination[length(cdf.scaled.vaccination)] * prob.success.MR2
+        pvacc[] <- design_target / (2 - design_target)
+      }
+
+      time.specific.routine[j,age.classes %in% c(age.min.MR2[j]:age.max.MR2[j])] <- pvacc
       #time.specific.routine[j,age.classes %in% c(age.min.MR2[j]:age.max.MR2[j])] <- pdf*prob.success.MR2
       #IF assuming correlation, pdf*prob.success.MR2 = rep(0.1282051, 12); sum(rep(0.1282051, 12)) = 0.1538462 = 0.08/0.52 = (mcv2*ve2*(1-ve1)) / (1-ve1*mcv1), proportion of susceptibles successfully vaccinated with MCV2, gtg
       #IF assuming no correlation pdf*prob.success.MR2 = rep(0.333, 12); sum(rep(0.333, 12)) = 0.4 = 0.5*0.8 = mcv2*ve2, check
