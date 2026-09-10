@@ -751,7 +751,8 @@ setClass("sim.results.MSIRV.update.demog",
 setClass("sim.results.MSIRV.update.demog.vaccine.change",
          slots = list(MR1.fail.each.timestep = "ANY", #the number of births per time step as output from simulation
                       MR2.fail.each.timestep = "ANY",
-                      SIA.fail.each.timestep = "ANY"
+                      SIA.fail.each.timestep = "ANY",
+                      last.trans = "ANY"
          ),
          contains="sim.results.MSIRV.update.demog")
 

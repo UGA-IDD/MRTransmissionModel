@@ -429,7 +429,8 @@ setMethod("run",
                       MR2.fail.each.timestep = MR2.fail.each.timestep,
                       SIA.fail.each.timestep = SIA.fail.each.timestep,
                       routine.intro = routine.intro,
-                      sia.times = sia.times)
+                      sia.times = sia.times,
+                      last.trans = tmp.trans)
 
             rc <- new("experiment.result",
                       experiment.def = exper,
@@ -693,7 +694,8 @@ setMethod("run",
                       MR2.fail.each.timestep = MR2.fail.each.timestep,
                       SIA.fail.each.timestep = SIA.fail.each.timestep,
                       routine.intro = routine.intro,
-                      sia.times = sia.times)
+                      sia.times = sia.times,
+                      last.trans = tmp.trans)
 
             rc <- new("experiment.result",
                       experiment.def = exper,
