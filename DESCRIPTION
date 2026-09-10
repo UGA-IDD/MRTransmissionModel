@@ -15,6 +15,8 @@ LazyData: true
 Depends: R(>= 3.5.0), countrycode, wpp2017, wpp2019, dplyr, survival, tibble, tidyr, wpp2022
 Collate: 
     'AggregateMeaslesSeroprevalenceByAgeBins.R'
+    'ConvertActivitySIA.R'
+    'ConvertAgeSIA_v2.R'
     'setClasses.R'
     'EX.Country.part1.R'
     'EX.Country.part1.setSUS.R'
@@ -82,7 +84,10 @@ Collate:
     'getDemography.wpp2019.R'
     'getDemography.wpp2022.R'
     'getDemography.wpp2022.mini.R'
+    'getDemography.wpp2024.R'
+    'getDemography.wpp2024.mini.R'
     'getOutput_201910gavi_v4.R'
+    'getWHO.SIAs.Sept2026.R'
     'getWHO.measles.SIAs.Nov2023.R'
     'getWHO.measles.SIAs.R'
     'getWHO.rubella.SIAs.Nov2023.R'
@@ -99,6 +104,7 @@ Collate:
     'scaleWAIFW.space.R'
     'setupCountry.Dec2021.R'
     'setupCountry.Nov2023.R'
+    'setupCountry.Sep2026.R'
     'space.create.ID.state.matrix.R'
     'space.create.ID.transition.MSIRV.R'
     'space.create.country.x.DFE.ID.state.matrix.R'
