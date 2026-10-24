@@ -280,7 +280,8 @@ setMethod("run",
                       MR2.fail.each.timestep = MR2.fail.each.timestep,
                       SIA.fail.each.timestep = SIA.fail.each.timestep,
                       routine.intro = routine.intro,
-                      sia.times = sia.times)
+                      sia.times = sia.times,
+                      last.trans = tmp.trans)
 
             rc <- new("experiment.result",
                       experiment.def = exper,
@@ -521,7 +522,11 @@ setMethod(
 
     # --- OBR pre-computation ---
 
-    or.times            <- rep(0, numTimeSteps)
+    or.times             <- rep(0, numTimeSteps)
+    or.trigger.times     <- rep(0, numTimeSteps)
+    or.trigger.metric    <- rep(NA_real_, numTimeSteps)
+    or.vacc.age.upper    <- rep(NA_real_, numTimeSteps)
+    or.target.case.count <- rep(NA_real_, numTimeSteps)
     last.or.t           <- -Inf
     pending.trigger.t   <- NA_integer_
     pending.case.by.age <- numeric(length(exper@trans@age.class))
@@ -638,6 +643,8 @@ setMethod(
 
         if (metric >= exper@or.n.confirmations.target) {
           pending.trigger.t <- t
+          or.trigger.times[t]  <- 1
+          or.trigger.metric[t] <- metric
         }
       }
 
@@ -662,10 +669,12 @@ setMethod(
 
         p <- tmp.trans@vac.per@pvacc.in.age.class
         tmp.trans@vac.per@pvacc.in.age.class <- p + or.vacc.prob.dyn - p * or.vacc.prob.dyn
-        or.times[t]         <- 1
-        last.or.t           <- t
-        pending.trigger.t   <- NA_integer_
-        pending.case.by.age <- numeric(length(age.classes))
+        or.times[t]             <- 1
+        or.vacc.age.upper[t]    <- vacc.upper
+        or.target.case.count[t] <- sum(pending.case.by.age)
+        last.or.t               <- t
+        pending.trigger.t       <- NA_integer_
+        pending.case.by.age     <- numeric(length(age.classes))
       }
 
       N0    <- sum(state)
@@ -738,13 +747,17 @@ setMethod(
       SIA.fail.each.timestep    = SIA.fail.each.timestep,
       routine.intro             = routine.intro,
       sia.times                 = sia.times,
-      or.times        = or.times,
-      obs.TP          = `rownames<-`(obs.TP,          age.classes),
-      obs.FN_test     = `rownames<-`(obs.FN_test,     age.classes),
-      obs.FP_test     = `rownames<-`(obs.FP_test,     age.classes),
-      obs.TN          = `rownames<-`(obs.TN,          age.classes),
-      obs.TP_clinical = `rownames<-`(obs.TP_clinical, age.classes),
-      obs.FP_clinical = `rownames<-`(obs.FP_clinical, age.classes))
+      or.times             = or.times,
+      or.trigger.times     = or.trigger.times,
+      or.trigger.metric    = or.trigger.metric,
+      or.vacc.age.upper    = or.vacc.age.upper,
+      or.target.case.count = or.target.case.count,
+      obs.TP               = `rownames<-`(obs.TP,          age.classes),
+      obs.FN_test          = `rownames<-`(obs.FN_test,     age.classes),
+      obs.FP_test          = `rownames<-`(obs.FP_test,     age.classes),
+      obs.TN               = `rownames<-`(obs.TN,          age.classes),
+      obs.TP_clinical      = `rownames<-`(obs.TP_clinical, age.classes),
+      obs.FP_clinical      = `rownames<-`(obs.FP_clinical, age.classes))
 
     rc <- new("experiment.result",
               experiment.def = exper,

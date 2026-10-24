@@ -792,7 +792,8 @@ setClass("sim.results.MSIRV.update.demog",
 setClass("sim.results.MSIRV.update.demog.vaccine.change",
          slots = list(MR1.fail.each.timestep = "ANY", #the number of births per time step as output from simulation
                       MR2.fail.each.timestep = "ANY",
-                      SIA.fail.each.timestep = "ANY"
+                      SIA.fail.each.timestep = "ANY",
+                      last.trans = "ANY"
          ),
          contains="sim.results.MSIRV.update.demog")
 
@@ -800,6 +801,10 @@ setClass("sim.results.MSIRV.update.demog.vaccine.change",
 #' Holds the results of an outbreak response simulation
 #'
 #' @slot or.times numeric. Vector of length numTimeSteps; 1 at each step an OBR campaign fired.
+#' @slot or.trigger.times numeric. Vector of length numTimeSteps; 1 at each step an outbreak was confirmed.
+#' @slot or.trigger.metric numeric. Trigger-window TP total at confirmation; NA at other time steps.
+#' @slot or.vacc.age.upper numeric. Upper campaign age target (months) at response; NA at other time steps.
+#' @slot or.target.case.count numeric. Number of cases used to construct the age-target CDF at response; NA at other time steps.
 #' @slot obs.TP matrix. Age x timestep; true measles cases tested and test-positive.
 #' @slot obs.FN_test matrix. Age x timestep; true measles cases tested and test-negative.
 #' @slot obs.FP_test matrix. Age x timestep; non-measles cases tested and test-positive.
@@ -811,13 +816,17 @@ setClass("sim.results.MSIRV.update.demog.vaccine.change",
 #' @docType class
 #' @rdname sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse-class
 setClass("sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
-         slots = list(or.times        = "numeric",
-                      obs.TP          = "matrix",
-                      obs.FN_test     = "matrix",
-                      obs.FP_test     = "matrix",
-                      obs.TN          = "matrix",
-                      obs.TP_clinical = "matrix",
-                      obs.FP_clinical = "matrix"),
+         slots = list(or.times             = "numeric",
+                      or.trigger.times     = "numeric",
+                      or.trigger.metric    = "numeric",
+                      or.vacc.age.upper    = "numeric",
+                      or.target.case.count = "numeric",
+                      obs.TP               = "matrix",
+                      obs.FN_test          = "matrix",
+                      obs.FP_test          = "matrix",
+                      obs.TN               = "matrix",
+                      obs.TP_clinical      = "matrix",
+                      obs.FP_clinical      = "matrix"),
          contains = "sim.results.MSIRV.update.demog.vaccine.change")
 
 
