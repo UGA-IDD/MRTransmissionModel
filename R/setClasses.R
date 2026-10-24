@@ -635,6 +635,47 @@ setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation",
          contains = "experiment.updatedemog.vaccinationchange")
 
 
+#' Class for an outbreak response experiment
+#'
+#' @slot or.total.delay numeric. Total time steps from end of surveillance window to response.
+#' @slot or.trigger.window numeric. Number of time steps to sum obs.TP over for trigger metric.
+#' @slot or.trigger.window.age.lower numeric. Lower age bound for surveillance trigger (months); NA = all ages.
+#' @slot or.trigger.window.age.upper numeric. Upper age bound for surveillance trigger (months); NA = all ages.
+#' @slot or.vacc.coverage numeric. OBR campaign coverage in [0,1].
+#' @slot or.min.interval numeric. Minimum time steps between successive OBR triggers.
+#' @slot or.reporting.rate numeric. Reporting rate (care-seeking x clinical recognition, pre-testing) in (0,1]; scalar or vector of length n.age.
+#' @slot or.non.meas.cases.by.age.month matrix. Non-measles suspected cases; rows = model age classes, columns = 12 calendar months.
+#' @slot or.Se numeric. Diagnostic test sensitivity in [0,1].
+#' @slot or.Sp numeric. Diagnostic test specificity in [0,1].
+#' @slot or.n.confirmations.target numeric. Trigger threshold (sum of obs.TP over window must reach this) and per-step testing stop rule.
+#' @slot or.response.delay numeric. Time steps from trigger to campaign delivery; case age distribution accumulates over this window.
+#' @slot or.vacc.agedist.percentile numeric. Percentile (0-1) of cumulative case age CDF used as the campaign upper age bound.
+#' @slot stop_testing_at_trigger logical. If TRUE, campaign age targeting uses suspected cases (reporting process only); if FALSE, uses obs.TP accumulated through the response window.
+#'
+#' @export
+#' @docType class
+#' @rdname experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse-class
+setClass("experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse",
+         slots = list(
+           or.total.delay                  = "numeric",
+           or.trigger.window               = "numeric",
+           or.trigger.window.age.lower     = "numeric",
+           or.trigger.window.age.upper     = "numeric",
+           or.vacc.coverage                = "numeric",
+           or.min.interval                 = "numeric",
+           or.start.timestep               = "numeric",
+           or.reporting.rate               = "numeric",
+           or.non.meas.cases.by.age.month  = "matrix",
+           or.Se                           = "numeric",
+           or.Sp                           = "numeric",
+           or.n.confirmations.target       = "numeric",
+           or.response.delay               = "numeric",
+           or.vacc.agedist.percentile      = "numeric",
+           stop_testing_at_trigger         = "logical"
+         ),
+         contains = "experiment.updatedemog.vaccinationchange.vaccinationcorrelation")
+
+
 #' Generate of object of class experiment result (sim.result)
 #'
 #' Class to hold SIR simulation results. Hold the results of the simulation as
@@ -755,6 +796,39 @@ setClass("sim.results.MSIRV.update.demog.vaccine.change",
                       last.trans = "ANY"
          ),
          contains="sim.results.MSIRV.update.demog")
+
+
+#' Holds the results of an outbreak response simulation
+#'
+#' @slot or.times numeric. Vector of length numTimeSteps; 1 at each step an OBR campaign fired.
+#' @slot or.trigger.times numeric. Vector of length numTimeSteps; 1 at each step an outbreak was confirmed.
+#' @slot or.trigger.metric numeric. Trigger-window TP total at confirmation; NA at other time steps.
+#' @slot or.vacc.age.upper numeric. Upper campaign age target (months) at response; NA at other time steps.
+#' @slot or.target.case.count numeric. Number of cases used to construct the age-target CDF at response; NA at other time steps.
+#' @slot obs.TP matrix. Age x timestep; true measles cases tested and test-positive.
+#' @slot obs.FN_test matrix. Age x timestep; true measles cases tested and test-negative.
+#' @slot obs.FP_test matrix. Age x timestep; non-measles cases tested and test-positive.
+#' @slot obs.TN matrix. Age x timestep; non-measles cases tested and test-negative.
+#' @slot obs.TP_clinical matrix. Age x timestep; true measles cases untested, recorded as clinical/epi-linked.
+#' @slot obs.FP_clinical matrix. Age x timestep; non-measles cases untested, recorded as clinical/epi-linked.
+#'
+#' @export
+#' @docType class
+#' @rdname sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse-class
+setClass("sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
+         slots = list(or.times             = "numeric",
+                      or.trigger.times     = "numeric",
+                      or.trigger.metric    = "numeric",
+                      or.vacc.age.upper    = "numeric",
+                      or.target.case.count = "numeric",
+                      obs.TP               = "matrix",
+                      obs.FN_test          = "matrix",
+                      obs.FP_test          = "matrix",
+                      obs.TN               = "matrix",
+                      obs.TP_clinical      = "matrix",
+                      obs.FP_clinical      = "matrix"),
+         contains = "sim.results.MSIRV.update.demog.vaccine.change")
+
 
 #' Holds the results of an experiment along with the experiment definition
 #'

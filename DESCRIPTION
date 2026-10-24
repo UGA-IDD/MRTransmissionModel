@@ -20,6 +20,7 @@ Collate:
     'setClasses.R'
     'EX.Country.part1.R'
     'EX.Country.part1.setSUS.R'
+    'EX.Country.part2.OR.R'
     'EX.Country.part2.R'
     'ExtractAgeSpecificSurvivalMatrix.R'
     'FitMeaslesSerology.R'

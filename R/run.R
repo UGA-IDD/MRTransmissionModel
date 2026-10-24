@@ -281,7 +281,8 @@ setMethod("run",
                       MR2.fail.each.timestep = MR2.fail.each.timestep,
                       SIA.fail.each.timestep = SIA.fail.each.timestep,
                       routine.intro = routine.intro,
-                      sia.times = sia.times)
+                      sia.times = sia.times,
+                      last.trans = tmp.trans)
 
             rc <- new("experiment.result",
                       experiment.def = exper,
@@ -438,6 +439,335 @@ setMethod("run",
 
             return(rc)
           }
+)
+
+#' @rdname run-methods
+#' @aliases run,experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse,ANY-method
+setMethod(
+  "run",
+  "experiment.updatedemog.vaccinationchange.vaccinationcorrelation.outbreakresponse",
+  function(exper, rescale.WAIFW = TRUE) {
+
+    state <- exper@state.t0
+
+    if (rescale.WAIFW && length(exper@R0) > 0) {
+      exper@trans@waifw <- scaleWAIFW(exper@R0,
+                                       state, exper@trans@waifw,
+                                       frequency.dep = exper@trans@frequency.dep,
+                                       suscept.state = exper@trans@s.inds[1])
+    }
+
+    numTimeSteps <- round((exper@t.max - exper@t.min) / exper@step.size) + 1
+
+    if (!is.null(exper@season.obj)) {
+      mults <- get.seasonal.mult(
+        exper@t0.doy / 365 + (1:numTimeSteps - 1) * exper@step.size,
+        exper@season.obj)
+    } else {
+      mults <- rep(1, numTimeSteps)
+    }
+
+    tmp.trans <- exper@trans
+
+    rc    <- matrix(ncol = numTimeSteps, nrow = nrow(state))
+    rc[, 1] <- state
+
+    births.each.timestep <- growth.rate.each.timestep <- rep(NA, numTimeSteps)
+    births.each.timestep[1] <- tmp.trans@birth.rate
+
+    # --- Routine vaccination schedule (unchanged from parent class) --
+
+    routine <- get.routine.time.age.specific(
+      time.step             = exper@step.size * 12,
+      age.classes           = exper@trans@age.class,
+      time.specific.MR1cov  = exper@time.specific.MR1cov,
+      age.min.MR1           = exper@time.specific.min.age.MR1,
+      age.max.MR1           = exper@time.specific.max.age.MR1,
+      time.specific.MR2cov  = exper@time.specific.MR2cov,
+      age.min.MR2           = exper@time.specific.min.age.MR2,
+      age.max.MR2           = exper@time.specific.max.age.MR2,
+      obj.vcdf.MR1          = exper@obj.vcdf.MR1,
+      obj.vcdf.MR2          = exper@obj.vcdf.MR2,
+      obj.prob.vsucc        = exper@obj.prob.vsucc,
+      MR1MR2correlation     = exper@MR1MR2correlation)
+
+    routine.intro <- rep(0, numTimeSteps)
+    if (any(exper@time.specific.MR1cov != 0))
+      routine.intro[min(which(exper@time.specific.MR1cov > 0)) * (1 / exper@step.size) + 1] <- 1
+    if (any(exper@time.specific.MR2cov != 0))
+      routine.intro[min(which(exper@time.specific.MR2cov > 0)) * (1 / exper@step.size) + 1] <- 1
+
+    index.routine.vacc <- c(1, rep(1:nrow(routine$age.time.specific.routine),
+                                   each = (numTimeSteps - 1) / exper@t.max))
+    if (length(index.routine.vacc) < numTimeSteps)
+      index.routine.vacc[(length(index.routine.vacc) + 1):numTimeSteps] <-
+        index.routine.vacc[length(index.routine.vacc)]
+
+    # --- Scheduled SIA campaigns (unchanged from parent class) --
+
+    SIA <- get.sia.time.age.specific(
+      age.classes          = exper@trans@age.class,
+      time.specific.SIAcov = exper@time.specific.SIAcov,
+      age.min.sia          = exper@time.specific.min.age.SIA,
+      age.max.sia          = exper@time.specific.max.age.SIA,
+      obj.prob.vsucc       = exper@obj.prob.vsucc)
+
+    index.sia.vacc <- rep(NA, numTimeSteps)
+    year.sia <- which(exper@time.specific.SIAcov != 0)
+    index.sia.vacc[(year.sia - 1) * (numTimeSteps - 1) / exper@t.max +
+                   round(exper@sia.timing.in.year * (numTimeSteps - 1) / exper@t.max)] <- year.sia
+    sia.times <- ifelse(!is.na(index.sia.vacc), 1, 0)
+
+    MR1.fail.each.timestep <- MR2.fail.each.timestep <- SIA.fail.each.timestep <-
+      rep(0, numTimeSteps)
+    MR1.fail.each.timestep[1] <- routine$prop.fail.MR1[1]
+    MR2.fail.each.timestep[1] <- routine$prop.fail.MR2[1]
+
+    # --- OBR pre-computation ---
+
+    or.times             <- rep(0, numTimeSteps)
+    or.trigger.times     <- rep(0, numTimeSteps)
+    or.trigger.metric    <- rep(NA_real_, numTimeSteps)
+    or.vacc.age.upper    <- rep(NA_real_, numTimeSteps)
+    or.target.case.count <- rep(NA_real_, numTimeSteps)
+    last.or.t           <- -Inf
+    pending.trigger.t   <- NA_integer_
+    pending.case.by.age <- numeric(length(exper@trans@age.class))
+    age.classes         <- exper@trans@age.class
+
+    # Age indices for the trigger surveillance window
+    if (is.na(exper@or.trigger.window.age.lower) || is.na(exper@or.trigger.window.age.upper)) {
+      trigger.age.pos <- seq_along(age.classes)
+    } else {
+      trigger.age.pos <- which(age.classes > exper@or.trigger.window.age.lower &
+                               age.classes <= exper@or.trigger.window.age.upper)
+    }
+
+    # Reporting rate for all ages (pre-testing fraction: care-seeking x clinical recognition)
+    or.rep.rate.all <- if (length(exper@or.reporting.rate) == 1) {
+      rep(exper@or.reporting.rate, length(age.classes))
+    } else {
+      exper@or.reporting.rate
+    }
+
+    # Steps per year (for calendar month mapping)
+    steps.per.year.or <- round(1 / exper@step.size)
+
+    # Earliest time step at which OBR trigger can be evaluated
+    or.min.t <- max(exper@or.total.delay + exper@or.trigger.window,
+                    exper@or.start.timestep)
+
+    # Observational model output matrices (age x timestep); always allocated
+    n.age.all     <- length(age.classes)
+    obs.TP          <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
+    obs.FN_test     <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
+    obs.FP_test     <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
+    obs.TN          <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
+    obs.TP_clinical <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
+    obs.FP_clinical <- matrix(0, nrow = n.age.all, ncol = numTimeSteps)
+
+    for (t in 2:numTimeSteps) {
+
+      if (length(exper@intro.rate) > 1)
+        tmp.trans@introduction.rate <- rep(exper@intro.rate[index.routine.vacc[t]],
+                                           exper@trans@n.age.class)
+
+      if (!is.array(mults)) {
+        tmp.trans@waifw <- exper@trans@waifw * mults[t]
+      } else {
+        tmp.trans@waifw <- exper@trans@waifw * mults[,, t]
+      }
+
+      if (!is.na(exper@pop.rescale.each.timestep[t]))
+        state <- exper@pop.rescale.each.timestep[t] * (state / sum(state))
+
+      if (length(exper@births.per.1000.each.timestep) > 1) {
+        tmp.trans@birth.rate <- exper@births.per.1000.each.timestep[t] * sum(state) / 1000
+      } else {
+        tmp.trans@birth.rate <- exper@trans@birth.rate * sum(rc[, t - 1]) / sum(exper@state.t0)
+      }
+      births.each.timestep[t] <- tmp.trans@birth.rate
+
+      if (!is.na(exper@surv.each.timestep[1, 1])) {
+        tmp.trans@age.surv.matrix <- ExtractAgeSpecificSurvivalMatrix(
+          tmp.trans          = tmp.trans,
+          maternal.obj       = exper@maternal.obj,
+          surv.at.timestep.t = exper@surv.each.timestep[, t])
+      }
+
+      # --- Routine + scheduled SIA vaccination (identical to parent class) --
+
+      if (!is.na(index.sia.vacc[t])) {
+        r       <- routine$age.time.specific.routine[index.routine.vacc[t], ]
+        s       <- SIA$age.time.specific.SIA[index.sia.vacc[t], ]
+        rho.vec <- rep(0, exper@trans@n.age.class)
+        MR1.age.range <- exper@time.specific.min.age.MR1[index.routine.vacc[t]]:
+                         exper@time.specific.max.age.MR1[index.routine.vacc[t]]
+        MR2.age.range <- exper@time.specific.min.age.MR2[index.routine.vacc[t]]:
+                         exper@time.specific.max.age.MR2[index.routine.vacc[t]]
+        rho.vec[MR1.age.range] <- exper@MR1SIAcorrelation
+        rho.vec[MR2.age.range] <- exper@MR2SIAcorrelation
+        tmp.trans@vac.per@pvacc.in.age.class <-
+          r + s - r * s - rho.vec * sqrt(pmax(0, r * (1 - r) * s * (1 - s)))
+        MR1.fail.each.timestep[t] <- routine$prop.fail.MR1[index.routine.vacc[t]]
+        MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[index.routine.vacc[t]]
+        SIA.fail.each.timestep[t] <- SIA$prop.fail.SIA[index.sia.vacc[t]]
+      } else {
+        tmp.trans@vac.per@pvacc.in.age.class <-
+          routine$age.time.specific.routine[index.routine.vacc[t], ]
+        MR1.fail.each.timestep[t] <- routine$prop.fail.MR1[index.routine.vacc[t]]
+        MR2.fail.each.timestep[t] <- routine$prop.fail.MR2[index.routine.vacc[t]]
+      }
+
+      # --- OBR: trigger check, campaign delivery, observational model, and accumulation ---
+      #
+      # Step 1 (pre-state-update): check for new trigger; fire campaign if response delay elapsed.
+      # Step 2 (post-state-update): run observational model; accumulate case age distribution.
+      #
+      # Trigger: sum obs.TP (IgM-confirmed measles) over trigger age group and window.
+      #   Fires when sum >= or.n.confirmations.target.
+      #
+      # Campaign age targeting (always CDF-based):
+      #   Upper age bound = age class at or.vacc.agedist.percentile of pending.case.by.age CDF.
+      #   Vaccination covers all ages from minimum up to that bound.
+      #
+      # stop_testing_at_trigger controls what accumulates in pending.case.by.age:
+      #   TRUE  -> suspected cases (true.reported.all + non-measles background)
+      #   FALSE -> obs.TP only (diagnostic confirmation continues through response window)
+
+      # 1a. Check for new trigger (only when no campaign is already pending)
+      if (is.na(pending.trigger.t) &&
+          t >= or.min.t &&
+          (t - last.or.t) >= exper@or.min.interval) {
+
+        t.end   <- t - exper@or.total.delay
+        t.start <- t.end - exper@or.trigger.window + 1
+        metric  <- sum(obs.TP[trigger.age.pos, t.start:t.end])
+
+        if (metric >= exper@or.n.confirmations.target) {
+          pending.trigger.t <- t
+          or.trigger.times[t]  <- 1
+          or.trigger.metric[t] <- metric
+        }
+      }
+
+      # 1b. Fire campaign when response delay has elapsed
+      if (!is.na(pending.trigger.t) &&
+          t == pending.trigger.t + exper@or.response.delay) {
+
+        # Upper vaccination age bound from case age CDF
+        if (sum(pending.case.by.age) > 0) {
+          cdf        <- cumsum(pending.case.by.age) / sum(pending.case.by.age)
+          pct.idx    <- which(cdf >= exper@or.vacc.agedist.percentile)[1]
+          vacc.upper <- age.classes[pct.idx]
+        } else {
+          vacc.upper <- max(age.classes)
+        }
+
+        or.vacc.age.pos.dyn <- which(age.classes <= vacc.upper)
+        or.vacc.prob.dyn    <- rep(0, exper@trans@n.age.class)
+        or.vacc.prob.dyn[or.vacc.age.pos.dyn] <-
+          exper@or.vacc.coverage *
+          exper@obj.prob.vsucc@prob.vsucc[or.vacc.age.pos.dyn]
+
+        p <- tmp.trans@vac.per@pvacc.in.age.class
+        tmp.trans@vac.per@pvacc.in.age.class <- p + or.vacc.prob.dyn - p * or.vacc.prob.dyn
+        or.times[t]             <- 1
+        or.vacc.age.upper[t]    <- vacc.upper
+        or.target.case.count[t] <- sum(pending.case.by.age)
+        last.or.t               <- t
+        pending.trigger.t       <- NA_integer_
+        pending.case.by.age     <- numeric(length(age.classes))
+      }
+
+      N0    <- sum(state)
+      state <- next.ID.state(state, tmp.trans)
+      NT    <- sum(state)
+      growth.rate.each.timestep[t] <- log(NT / N0)
+
+      rc[, t] <- state
+
+      # Calendar month for this timestep
+      month.t <- floor(((t - 1) %% steps.per.year.or) / steps.per.year.or * 12) + 1
+
+      # Suspected cases entering surveillance (reporting process, pre-testing)
+      true.reported.all <- rc[exper@trans@i.inds, t] * or.rep.rate.all
+
+      # Observational model: 6-category age x timestep breakdown
+      m.all          <- exper@or.non.meas.cases.by.age.month[, month.t]
+      total.susp.all <- true.reported.all + m.all
+      total.susp.sum <- sum(total.susp.all)
+
+      if (total.susp.sum > 0) {
+        pos.rate <- (sum(true.reported.all) / total.susp.sum) * exper@or.Se +
+                    (sum(m.all)             / total.susp.sum) * (1 - exper@or.Sp)
+        n.tests  <- if (pos.rate > 0)
+          min(exper@or.n.confirmations.target / pos.rate, total.susp.sum)
+        else 0
+
+        prop.age         <- total.susp.all / total.susp.sum
+        n.tested         <- n.tests * prop.age
+        prop.true        <- ifelse(total.susp.all > 0,
+                                   true.reported.all / total.susp.all, 0)
+        n.true.tested    <- n.tested * prop.true
+        n.nonmeas.tested <- n.tested * (1 - prop.true)
+
+        obs.TP[, t]          <- n.true.tested    * exper@or.Se
+        obs.FN_test[, t]     <- n.true.tested    * (1 - exper@or.Se)
+        obs.FP_test[, t]     <- n.nonmeas.tested * (1 - exper@or.Sp)
+        obs.TN[, t]          <- n.nonmeas.tested * exper@or.Sp
+        obs.TP_clinical[, t] <- true.reported.all - n.true.tested
+        obs.FP_clinical[, t] <- m.all             - n.nonmeas.tested
+      }
+
+      # Accumulate case age distribution during the response window
+      if (!is.na(pending.trigger.t) &&
+          t >= pending.trigger.t &&
+          t < pending.trigger.t + exper@or.response.delay) {
+
+        if (exper@stop_testing_at_trigger) {
+          pending.case.by.age <- pending.case.by.age + true.reported.all + m.all
+        } else {
+          pending.case.by.age <- pending.case.by.age + obs.TP[, t]
+        }
+      }
+    }
+
+    result.rc <- new(
+      "sim.results.MSIRV.update.demog.vaccine.change.outbreakresponse",
+      data                      = rc,
+      m.inds                    = exper@trans@m.inds,
+      s.inds                    = exper@trans@s.inds,
+      i.inds                    = exper@trans@i.inds,
+      r.inds                    = exper@trans@r.inds,
+      v.inds                    = exper@trans@v.inds,
+      t                         = exper@t.min + (1:numTimeSteps - 1) * exper@step.size,
+      age.class                 = exper@trans@age.class,
+      births.each.timestep      = births.each.timestep,
+      growth.rate.each.timestep = growth.rate.each.timestep,
+      MR1.fail.each.timestep    = MR1.fail.each.timestep,
+      MR2.fail.each.timestep    = MR2.fail.each.timestep,
+      SIA.fail.each.timestep    = SIA.fail.each.timestep,
+      routine.intro             = routine.intro,
+      sia.times                 = sia.times,
+      or.times             = or.times,
+      or.trigger.times     = or.trigger.times,
+      or.trigger.metric    = or.trigger.metric,
+      or.vacc.age.upper    = or.vacc.age.upper,
+      or.target.case.count = or.target.case.count,
+      obs.TP               = `rownames<-`(obs.TP,          age.classes),
+      obs.FN_test          = `rownames<-`(obs.FN_test,     age.classes),
+      obs.FP_test          = `rownames<-`(obs.FP_test,     age.classes),
+      obs.TN               = `rownames<-`(obs.TN,          age.classes),
+      obs.TP_clinical      = `rownames<-`(obs.TP_clinical, age.classes),
+      obs.FP_clinical      = `rownames<-`(obs.FP_clinical, age.classes))
+
+    rc <- new("experiment.result",
+              experiment.def = exper,
+              result         = result.rc)
+
+    return(rc)
+  }
 )
 
 #' @rdname run-methods
